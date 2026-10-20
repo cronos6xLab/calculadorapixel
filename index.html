@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculadora Minecraft</title>
+<title>Calculadora Minecraft · Científica</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,6 +15,8 @@
     --gui-light:  #ffffff;
     --outline:    #2b2b2b;
     --screen-glow:#7cfc00;
+    --sci:        #6f4a9e;
+    --sci-hover:  #8359b8;
   }
 
   *{ box-sizing: border-box; }
@@ -103,7 +105,7 @@
     align-items: center;
     gap: 10px;
     margin-bottom: 14px;
-    padding: 8px 10px;
+    padding: 7px 8px;
     background: #3b3b3b;
     box-shadow:
       inset  2px  2px 0 #575757,
@@ -114,8 +116,40 @@
   }
 
   .creeper{ width: 18px; height: 18px; display: block; flex: none; }
-  .calc__title{ flex: 1; }
+  .calc__title{ flex: 1; white-space: nowrap; }
   .calc__tag{ color: var(--screen-glow); font-size: 8px; }
+
+  /* Botón SCI de la barra de título */
+  .calc__sci{
+    flex: none;
+    font-family: inherit;
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 0;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.7);
+    background: var(--sci);
+    cursor: pointer;
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.4),
+      inset -2px -2px 0 rgba(0,0,0,.45),
+      0 3px 0 #1d1d1d;
+    transition: background .15s ease, transform .05s ease, box-shadow .05s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .calc__sci:hover{ background: var(--sci-hover); }
+  .calc__sci:active{ transform: translateY(3px); box-shadow: inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.5); }
+  .calc__sci.is-on{
+    background: #3f9b4a;
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.45),
+      inset -2px -2px 0 rgba(0,0,0,.4),
+      0 3px 0 #1d1d1d,
+      0 0 12px rgba(124,252,0,.75);
+  }
+  .calc__sci:focus-visible{ outline: 3px solid #ffe066; outline-offset: 3px; }
 
   /* ============ PANTALLA ============ */
   .display{
@@ -190,6 +224,45 @@
     100%{ filter: none; }
   }
 
+  /* ============ PANEL CIENTÍFICO ============ */
+  .sci-panel{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin-bottom: 0;
+    /* Apertura "pixelada" por pasos */
+    transition:
+      max-height   .38s steps(7),
+      opacity      .28s steps(4),
+      margin-bottom .38s steps(7);
+  }
+
+  .calc.sci-open .sci-panel{
+    max-height: 240px;
+    opacity: 1;
+    margin-bottom: 10px;
+  }
+
+  .sci-panel .key{
+    padding: 12px 0 10px;
+    font-size: clamp(9px, 2.7vw, 12px);
+  }
+
+  .key--sci{ background-color: var(--sci); }
+  .key--sci:hover{ background-color: var(--sci-hover); }
+
+  .key--sci.alt{
+    background-color: #3f9b4a;
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.45),
+      inset -2px -2px 0 rgba(0,0,0,.4),
+      0 4px 0 #2b2b2b,
+      0 0 10px rgba(124,252,0,.6);
+  }
+
   /* ============ TECLADO ============ */
   .keys{
     display: grid;
@@ -256,8 +329,11 @@
 
   @media (max-width: 380px){
     .calc{ padding: 12px; }
-    .keys{ gap: 7px; }
+    .keys, .sci-panel{ gap: 7px; }
     .key{ padding: 13px 0 11px; }
+    .sci-panel .key{ padding: 10px 0 8px; }
+    .calc__tag{ display: none; }
+    .calc__title{ font-size: 8px; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -276,7 +352,7 @@
   <span class="block b5"></span>
 </div>
 
-<main class="calc">
+<main class="calc" id="calc">
 
   <div class="calc__titlebar">
     <svg class="creeper" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
@@ -288,12 +364,33 @@
       <rect x="5" y="4" width="1" height="2" fill="#0f2b12"/>
     </svg>
     <span class="calc__title">CALCULADORA</span>
-    <span class="calc__tag">v1.0</span>
+    <span class="calc__tag">v1.1</span>
+    <button type="button" class="calc__sci" id="sciToggle"
+            aria-pressed="false" aria-controls="sciPanel"
+            title="Mostrar/ocultar funciones científicas">SCI</button>
   </div>
 
   <div class="display" id="display">
     <div class="display__history" id="history" aria-hidden="true">&nbsp;</div>
     <div class="display__current" id="current" aria-live="polite">0</div>
+  </div>
+
+  <!-- ===== Panel de funciones científicas (se despliega con SCI) ===== -->
+  <div class="sci-panel" id="sciPanel" role="group" aria-label="Funciones científicas">
+    <button type="button" class="key key--sci" data-action="sci" data-value="sin" title="Seno">sin</button>
+    <button type="button" class="key key--sci" data-action="sci" data-value="cos" title="Coseno">cos</button>
+    <button type="button" class="key key--sci" data-action="sci" data-value="tan" title="Tangente">tan</button>
+    <button type="button" class="key key--sci" data-action="const" data-value="pi" title="Pi (π)">π</button>
+
+    <button type="button" class="key key--sci" data-action="sci" data-value="sqrt" title="Raíz cuadrada">√</button>
+    <button type="button" class="key key--sci" data-action="sci" data-value="square" title="Elevar al cuadrado">x²</button>
+    <button type="button" class="key key--op"  data-action="op"  data-value="^" title="Elevar a la potencia">xʸ</button>
+    <button type="button" class="key key--sci" data-action="sci" data-value="inv" title="Inverso (1/x)">1/x</button>
+
+    <button type="button" class="key key--sci" data-action="sci" data-value="log" title="Logaritmo base 10">log</button>
+    <button type="button" class="key key--sci" data-action="sci" data-value="ln" title="Logaritmo natural">ln</button>
+    <button type="button" class="key key--sci" data-action="const" data-value="e" title="Número e">e</button>
+    <button type="button" class="key key--sci" data-action="angle" id="angleBtn" title="Cambiar grados/radianes">DEG</button>
   </div>
 
   <div class="keys" id="keys">
@@ -330,28 +427,34 @@
   'use strict';
 
   /* ---------------- Referencias del DOM ---------------- */
+  const calcEl    = document.getElementById('calc');
   const displayEl = document.getElementById('display');
   const currentEl = document.getElementById('current');
   const historyEl = document.getElementById('history');
   const keysEl    = document.getElementById('keys');
+  const sciPanel  = document.getElementById('sciPanel');
+  const sciToggle = document.getElementById('sciToggle');
+  const angleBtn  = document.getElementById('angleBtn');
 
   /* ---------------- Estado de la calculadora ---------------- */
   let current            = '0';    // número que se está escribiendo (string)
   let previous           = null;   // valor acumulado (number)
-  let operator           = null;   // '+', '-', '*', '/'
+  let operator           = null;   // '+', '-', '*', '/', '^'
   let waitingForOperand  = false;  // se acaba de pulsar un operador
   let justEvaluated      = false;  // se acaba de pulsar "="
   let error              = false;
   let historyText        = '\u00a0';
+  let angleMode          = 'DEG';  // 'DEG' | 'RAD'
 
   const OPS = {
     '+': (a, b) => a + b,
     '-': (a, b) => a - b,
     '*': (a, b) => a * b,
-    '/': (a, b) => a / b
+    '/': (a, b) => a / b,
+    '^': (a, b) => Math.pow(a, b)
   };
 
-  const SYMBOL = { '+': '+', '-': '-', '*': '×', '/': '÷' };
+  const SYMBOL = { '+': '+', '-': '-', '*': '×', '/': '÷', '^': '^' };
 
   /* ---------------- Sonido (Web Audio, sin archivos) ---------------- */
   let audioCtx = null;
@@ -402,6 +505,27 @@
     return formatNumber(parseFloat(current));
   }
 
+  /* ---------------- Utilidades científicas ---------------- */
+  function toRad(x) {
+    return angleMode === 'DEG' ? x * Math.PI / 180 : x;
+  }
+
+  // Redondeo para eliminar "ruido" de coma flotante (sin(180) → 0)
+  function cleanNum(x) {
+    if (!isFinite(x)) return NaN;
+    return parseFloat(x.toPrecision(12));
+  }
+
+  function unaryHistory(name, value) {
+    const v = formatNumber(value);
+    switch (name) {
+      case 'sqrt':   return '\u221a(' + v + ') =';
+      case 'square': return v + '\u00b2 =';
+      case 'inv':    return '1/(' + v + ') =';
+      default:       return name + '(' + v + ') =';
+    }
+  }
+
   /* ---------------- Render ---------------- */
   function render() {
     currentEl.textContent = displayValue();
@@ -424,7 +548,7 @@
     });
   }
 
-  /* ---------------- Acciones ---------------- */
+  /* ---------------- Acciones básicas ---------------- */
   function clearAll() {
     current = '0';
     previous = null;
@@ -455,6 +579,9 @@
       waitingForOperand = false;
       justEvaluated = false;
       historyText = '\u00a0';
+    } else if (/[eE]/.test(current)) {
+      // No concatenar dígitos a notaciones exponenciales
+      current = d;
     } else if (current === '0') {
       current = d;
     } else if (current === '-0') {
@@ -468,7 +595,7 @@
   function inputDot() {
     if (error) clearAll();
 
-    if (waitingForOperand || justEvaluated) {
+    if (waitingForOperand || justEvaluated || /[eE]/.test(current)) {
       current = '0.';
       waitingForOperand = false;
       justEvaluated = false;
@@ -506,7 +633,7 @@
     const result = OPS[operator](previous, value);
     const expression = formatNumber(previous) + ' ' + SYMBOL[operator] + ' ' + formatNumber(value) + ' =';
 
-    if (!isFinite(result)) {
+    if (!isFinite(result) || isNaN(result)) {
       historyText = expression;
       setError();
       return;
@@ -560,6 +687,90 @@
     render();
   }
 
+  /* ---------------- Acciones científicas ---------------- */
+  function applyUnary(name) {
+    if (error) return;
+
+    const value = parseFloat(current);
+    let result;
+
+    switch (name) {
+      case 'sin':
+        result = cleanNum(Math.sin(toRad(value)));
+        break;
+      case 'cos':
+        result = cleanNum(Math.cos(toRad(value)));
+        break;
+      case 'tan': {
+        const r = toRad(value);
+        // tan(90°) es indeterminada
+        result = Math.abs(Math.cos(r)) < 1e-12 ? NaN : cleanNum(Math.tan(r));
+        break;
+      }
+      case 'sqrt':
+        result = value < 0 ? NaN : cleanNum(Math.sqrt(value));
+        break;
+      case 'square':
+        result = cleanNum(value * value);
+        break;
+      case 'log':
+        result = value <= 0 ? NaN : cleanNum(Math.log10(value));
+        break;
+      case 'ln':
+        result = value <= 0 ? NaN : cleanNum(Math.log(value));
+        break;
+      case 'inv':
+        result = value === 0 ? NaN : cleanNum(1 / value);
+        break;
+      default:
+        return;
+    }
+
+    const hist = unaryHistory(name, value);
+
+    if (isNaN(result)) {
+      historyText = hist;
+      setError();
+      beep(180, 0.14, 'sawtooth', 0.05);
+      return;
+    }
+
+    historyText = hist;
+    current = String(result);
+    waitingForOperand = true;   // el siguiente dígito empieza de cero
+    justEvaluated = false;
+    error = false;
+
+    render();
+    displayEl.classList.add('flash');
+    setTimeout(function () { displayEl.classList.remove('flash'); }, 220);
+    beep(760, 0.06);
+  }
+
+  function inputConstant(value) {
+    if (error) clearAll();
+    current = String(value);
+    waitingForOperand = true;
+    justEvaluated = false;
+    historyText = '\u00a0';
+    render();
+  }
+
+  function toggleAngle() {
+    angleMode = angleMode === 'DEG' ? 'RAD' : 'DEG';
+    angleBtn.textContent = angleMode;
+    angleBtn.classList.toggle('alt', angleMode === 'RAD');
+    beep(700, 0.05);
+  }
+
+  /* ---------------- Panel científico: abrir / cerrar ---------------- */
+  sciToggle.addEventListener('click', function () {
+    const open = calcEl.classList.toggle('sci-open');
+    sciToggle.classList.toggle('is-on', open);
+    sciToggle.setAttribute('aria-pressed', String(open));
+    beep(open ? 620 : 420, 0.07);
+  });
+
   /* ---------------- Ejecutar acción ---------------- */
   function activate(btn) {
     const action = btn.dataset.action;
@@ -578,11 +789,17 @@
       case 'back':    backspace();        beep(320, 0.06);  break;
       case 'sign':    toggleSign();       beep(520, 0.05);  break;
       case 'percent': percent();          beep(520, 0.05);  break;
+      case 'sci':     applyUnary(value);  break;              // sonido propio
+      case 'const':
+        inputConstant(value === 'pi' ? Math.PI : Math.E);
+        beep(700, 0.05);
+        break;
+      case 'angle':   toggleAngle();      break;              // sonido propio
     }
   }
 
   /* ---------------- Eventos ---------------- */
-  keysEl.addEventListener('click', function (e) {
+  calcEl.addEventListener('click', function (e) {
     const btn = e.target.closest('.key');
     if (!btn) return;
     activate(btn);
@@ -606,6 +823,7 @@
     else if (k === '-')                             sel = '[data-action="op"][data-value="-"]';
     else if (k === '*' || k === 'x' || k === 'X')   sel = '[data-action="op"][data-value="*"]';
     else if (k === '/')                             sel = '[data-action="op"][data-value="/"]';
+    else if (k === '^')                             sel = '[data-action="op"][data-value="^"]';
     else if (k === 'Enter' || k === '=')            sel = '[data-action="equals"]';
     else if (k === 'Backspace')                     sel = '[data-action="back"]';
     else if (k === 'Escape' || k === 'Delete')      sel = '[data-action="clear"]';
