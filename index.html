@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Minecraft</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --gui:        #c6c6c6;
+    --gui-light:  #ffffff;
+    --outline:    #2b2b2b;
+    --screen-glow:#7cfc00;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html{ height: 100%; }
+
+  body{
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 28px 16px;
+    font-family: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+    color: #fff;
+    background-color: #6b4f34;
+    /* Textura de tierra pixelada (SVG en línea, 16x16 escalado) */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23845c3a'/%3E%3Crect x='0' y='0' width='4' height='4' fill='%23764f30'/%3E%3Crect x='8' y='2' width='2' height='2' fill='%23694a2c'/%3E%3Crect x='12' y='0' width='4' height='2' fill='%238d6540'/%3E%3Crect x='2' y='8' width='4' height='4' fill='%23694a2c'/%3E%3Crect x='10' y='8' width='2' height='2' fill='%23916b45'/%3E%3Crect x='6' y='12' width='4' height='2' fill='%237a5233'/%3E%3Crect x='14' y='10' width='2' height='4' fill='%23654527'/%3E%3Crect x='0' y='14' width='2' height='2' fill='%23916b45'/%3E%3C/svg%3E");
+    background-size: 96px 96px;
+    image-rendering: pixelated;
+    overflow-x: hidden;
+  }
+
+  /* Viñeta ambiental */
+  body::after{
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 45%, transparent 25%, rgba(0,0,0,.65) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ============ BLOQUES FLOTANTES DE FONDO ============ */
+  .bg{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .block{
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    opacity: .38;
+    background-color: #7a5233;
+    background-image:
+      linear-gradient(to bottom, #5fa83a 0 22%, transparent 22%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%237a5233'/%3E%3Crect x='0' y='0' width='3' height='2' fill='%23654527'/%3E%3Crect x='5' y='3' width='2' height='2' fill='%238d6540'/%3E%3Crect x='2' y='5' width='2' height='3' fill='%23654527'/%3E%3C/svg%3E");
+    background-size: 100% 100%, 26px 26px;
+    image-rendering: pixelated;
+    box-shadow: 0 0 0 2px rgba(0,0,0,.25), 6px 6px 0 rgba(0,0,0,.25);
+    animation: bob 12s ease-in-out infinite;
+  }
+
+  .b1{ left: 6%;  top: 12%;  animation-duration: 11s; }
+  .b2{ right: 8%; top: 22%;  animation-duration: 14s; animation-delay: -3s; }
+  .b3{ left: 12%; bottom: 14%; animation-duration: 13s; animation-delay: -6s; }
+  .b4{ right: 14%; bottom: 18%; animation-duration: 16s; animation-delay: -9s; }
+  .b5{ left: 45%; top: 6%;  width: 34px; height: 34px; animation-duration: 18s; animation-delay: -2s; }
+
+  @keyframes bob{
+    0%, 100%{ transform: translateY(0) rotate(0deg); }
+    50%     { transform: translateY(-26px) rotate(3deg); }
+  }
+
+  /* ============ PANEL PRINCIPAL (estilo GUI de Minecraft) ============ */
+  .calc{
+    position: relative;
+    z-index: 2;
+    width: min(400px, 92vw);
+    padding: 16px;
+    background-color: var(--gui);
+    box-shadow:
+      inset  3px  3px 0 0 var(--gui-light),
+      inset -3px -3px 0 0 #7a7a7a,
+      0 0 0 4px var(--outline),
+      0 0 0 8px #111111,
+      18px 18px 0 0 rgba(0,0,0,.45);
+  }
+
+  /* Barra de título */
+  .calc__titlebar{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 8px 10px;
+    background: #3b3b3b;
+    box-shadow:
+      inset  2px  2px 0 #575757,
+      inset -2px -2px 0 #1d1d1d;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #e9e9e9;
+  }
+
+  .creeper{ width: 18px; height: 18px; display: block; flex: none; }
+  .calc__title{ flex: 1; }
+  .calc__tag{ color: var(--screen-glow); font-size: 8px; }
+
+  /* ============ PANTALLA ============ */
+  .display{
+    position: relative;
+    margin-bottom: 16px;
+    padding: 14px 12px;
+    min-height: 94px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 10px;
+    overflow: hidden;
+    background: radial-gradient(ellipse at center, #12290f 0%, #070f08 100%);
+    box-shadow:
+      inset  4px  4px 0 rgba(0,0,0,.9),
+      inset -4px -4px 0 rgba(255,255,255,.07),
+      0 0 0 4px #2b2b2b;
+  }
+
+  /* Líneas de escaneo tipo CRT */
+  .display::before{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,.28) 0 2px,
+      transparent     2px 4px
+    );
+    opacity: .55;
+    pointer-events: none;
+  }
+
+  .display__history{
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #4e9b52;
+    text-shadow: 1px 1px 0 #000;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    min-height: 11px;
+  }
+
+  .display__current{
+    font-size: clamp(14px, 4.4vw, 22px);
+    color: var(--screen-glow);
+    text-shadow: 0 0 10px rgba(124,252,0,.65), 2px 2px 0 #08260b;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 100%;
+    line-height: 1.35;
+  }
+
+  .display.is-error{ animation: shake .32s steps(2); }
+  .display.is-error .display__current{
+    color: #ff5b5b;
+    text-shadow: 0 0 10px rgba(255,60,60,.75), 2px 2px 0 #3a0000;
+  }
+
+  .display.flash{ animation: flash .22s steps(2); }
+
+  @keyframes shake{
+    0%,100%{ transform: translateX(0); }
+    25%    { transform: translateX(-5px); }
+    75%    { transform: translateX(5px); }
+  }
+
+  @keyframes flash{
+    0%  { filter: brightness(1.7); }
+    100%{ filter: none; }
+  }
+
+  /* ============ TECLADO ============ */
+  .keys{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .key{
+    font-family: inherit;
+    font-size: clamp(11px, 3.1vw, 15px);
+    line-height: 1;
+    padding: 16px 0 14px;
+    border: 0;
+    border-radius: 0;
+    color: #fff;
+    text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+    cursor: pointer;
+    background-color: #8b8b8b;
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.5),
+      inset -2px -2px 0 rgba(0,0,0,.4),
+      0 4px 0 #2b2b2b;
+    transition: background-color .12s ease, transform .05s ease, box-shadow .05s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .key--num{ background-color: #8b8b8b; }
+  .key--num:hover{ background-color: #a3a3a3; }
+
+  .key--op{ background-color: #a4712f; }          /* tablones de roble */
+  .key--op:hover{ background-color: #bd8639; }
+
+  .key--fn{ background-color: #6b7f8c; }          /* piedra azulada */
+  .key--fn:hover{ background-color: #8299a8; }
+
+  .key--danger{ background-color: #a83a3a; }      /* redstone */
+  .key--danger:hover{ background-color: #c44747; }
+
+  .key--eq{ background-color: #3f9b4a; }          /* esmeralda */
+  .key--eq:hover{ background-color: #4dbb5a; }
+
+  .key:active,
+  .key.is-pressed{
+    transform: translateY(4px);
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.35),
+      inset -2px -2px 0 rgba(0,0,0,.5);
+  }
+
+  .key--op.is-active{
+    box-shadow:
+      inset  2px  2px 0 rgba(255,255,255,.5),
+      inset -2px -2px 0 rgba(0,0,0,.4),
+      0 4px 0 #2b2b2b,
+      0 0 0 3px #ffe066;
+  }
+
+  .key:focus-visible{
+    outline: 3px solid #ffe066;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 380px){
+    .calc{ padding: 12px; }
+    .keys{ gap: 7px; }
+    .key{ padding: 13px 0 11px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Bloques decorativos de fondo -->
+<div class="bg" aria-hidden="true">
+  <span class="block b1"></span>
+  <span class="block b2"></span>
+  <span class="block b3"></span>
+  <span class="block b4"></span>
+  <span class="block b5"></span>
+</div>
+
+<main class="calc">
+
+  <div class="calc__titlebar">
+    <svg class="creeper" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
+      <rect width="8" height="8" fill="#4caf50"/>
+      <rect x="1" y="1" width="2" height="2" fill="#0f2b12"/>
+      <rect x="5" y="1" width="2" height="2" fill="#0f2b12"/>
+      <rect x="3" y="3" width="2" height="3" fill="#0f2b12"/>
+      <rect x="2" y="4" width="1" height="2" fill="#0f2b12"/>
+      <rect x="5" y="4" width="1" height="2" fill="#0f2b12"/>
+    </svg>
+    <span class="calc__title">CALCULADORA</span>
+    <span class="calc__tag">v1.0</span>
+  </div>
+
+  <div class="display" id="display">
+    <div class="display__history" id="history" aria-hidden="true">&nbsp;</div>
+    <div class="display__current" id="current" aria-live="polite">0</div>
+  </div>
+
+  <div class="keys" id="keys">
+    <button type="button" class="key key--danger" data-action="clear">AC</button>
+    <button type="button" class="key key--fn"     data-action="back">DEL</button>
+    <button type="button" class="key key--fn"     data-action="percent">%</button>
+    <button type="button" class="key key--op"     data-action="op" data-value="/">÷</button>
+
+    <button type="button" class="key key--num" data-action="digit" data-value="7">7</button>
+    <button type="button" class="key key--num" data-action="digit" data-value="8">8</button>
+    <button type="button" class="key key--num" data-action="digit" data-value="9">9</button>
+    <button type="button" class="key key--op"  data-action="op" data-value="*">×</button>
+
+    <button type="button" class="key key--num" data-action="digit" data-value="4">4</button>
+    <button type="button" class="key key--num" data-action="digit" data-value="5">5</button>
+    <button type="button" class="key key--num" data-action="digit" data-value="6">6</button>
+    <button type="button" class="key key--op"  data-action="op" data-value="-">-</button>
+
+    <button type="button" class="key key--num" data-action="digit" data-value="1">1</button>
+    <button type="button" class="key key--num" data-action="digit" data-value="2">2</button>
+    <button type="button" class="key key--num" data-action="digit" data-value="3">3</button>
+    <button type="button" class="key key--op"  data-action="op" data-value="+">+</button>
+
+    <button type="button" class="key key--fn"  data-action="sign">±</button>
+    <button type="button" class="key key--num" data-action="digit" data-value="0">0</button>
+    <button type="button" class="key key--num" data-action="dot">.</button>
+    <button type="button" class="key key--eq"  data-action="equals">=</button>
+  </div>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------- Referencias del DOM ---------------- */
+  const displayEl = document.getElementById('display');
+  const currentEl = document.getElementById('current');
+  const historyEl = document.getElementById('history');
+  const keysEl    = document.getElementById('keys');
+
+  /* ---------------- Estado de la calculadora ---------------- */
+  let current            = '0';    // número que se está escribiendo (string)
+  let previous           = null;   // valor acumulado (number)
+  let operator           = null;   // '+', '-', '*', '/'
+  let waitingForOperand  = false;  // se acaba de pulsar un operador
+  let justEvaluated      = false;  // se acaba de pulsar "="
+  let error              = false;
+  let historyText        = '\u00a0';
+
+  const OPS = {
+    '+': (a, b) => a + b,
+    '-': (a, b) => a - b,
+    '*': (a, b) => a * b,
+    '/': (a, b) => a / b
+  };
+
+  const SYMBOL = { '+': '+', '-': '-', '*': '×', '/': '÷' };
+
+  /* ---------------- Sonido (Web Audio, sin archivos) ---------------- */
+  let audioCtx = null;
+
+  function beep(freq, dur = 0.06, type = 'square', vol = 0.045) {
+    try {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
+    } catch (e) { /* silencio */ }
+  }
+
+  /* ---------------- Formato de números ---------------- */
+  function formatNumber(num) {
+    if (!isFinite(num)) return 'ERROR';
+    let s = String(num);
+    if (s.length <= 12) return s;
+
+    if (Math.abs(num) >= 1e12 || (Math.abs(num) < 1e-6 && num !== 0)) {
+      return num.toExponential(4).replace('e+', 'e');
+    }
+    s = String(parseFloat(num.toFixed(10)));
+    if (s.length > 12) return num.toExponential(4);
+    return s;
+  }
+
+  function displayValue() {
+    if (error) return 'ERROR';
+    // Mientras el usuario escribe, mostramos el texto tal cual
+    if (current.length <= 12 && !/[eE]/.test(current)) return current;
+    return formatNumber(parseFloat(current));
+  }
+
+  /* ---------------- Render ---------------- */
+  function render() {
+    currentEl.textContent = displayValue();
+
+    if (operator !== null && previous !== null && !error) {
+      historyEl.textContent = formatNumber(previous) + ' ' + SYMBOL[operator];
+    } else {
+      historyEl.textContent = historyText;
+    }
+
+    displayEl.classList.toggle('is-error', error);
+    updateActiveOperator();
+  }
+
+  function updateActiveOperator() {
+    const btns = keysEl.querySelectorAll('[data-action="op"]');
+    btns.forEach(function (btn) {
+      const active = waitingForOperand && !error && btn.dataset.value === operator;
+      btn.classList.toggle('is-active', active);
+    });
+  }
+
+  /* ---------------- Acciones ---------------- */
+  function clearAll() {
+    current = '0';
+    previous = null;
+    operator = null;
+    waitingForOperand = false;
+    justEvaluated = false;
+    error = false;
+    historyText = '\u00a0';
+    displayEl.classList.remove('is-error');
+    render();
+  }
+
+  function setError() {
+    error = true;
+    previous = null;
+    operator = null;
+    waitingForOperand = false;
+    justEvaluated = true;
+    current = '0';
+    render();
+  }
+
+  function inputDigit(d) {
+    if (error) clearAll();
+
+    if (waitingForOperand || justEvaluated) {
+      current = d;
+      waitingForOperand = false;
+      justEvaluated = false;
+      historyText = '\u00a0';
+    } else if (current === '0') {
+      current = d;
+    } else if (current === '-0') {
+      current = '-' + d;
+    } else if (current.replace(/[^0-9]/g, '').length < 12) {
+      current += d;
+    }
+    render();
+  }
+
+  function inputDot() {
+    if (error) clearAll();
+
+    if (waitingForOperand || justEvaluated) {
+      current = '0.';
+      waitingForOperand = false;
+      justEvaluated = false;
+      historyText = '\u00a0';
+    } else if (!current.includes('.')) {
+      current += '.';
+    }
+    render();
+  }
+
+  function chooseOperator(op) {
+    if (error) return;
+
+    const value = parseFloat(current);
+
+    if (operator !== null && !waitingForOperand) {
+      const result = OPS[operator](previous, value);
+      if (!isFinite(result)) { setError(); return; }
+      previous = result;
+      current = String(result);
+    } else {
+      previous = value;
+    }
+
+    operator = op;
+    waitingForOperand = true;
+    justEvaluated = false;
+    render();
+  }
+
+  function equals() {
+    if (error || operator === null || previous === null) return;
+
+    const value = parseFloat(current);
+    const result = OPS[operator](previous, value);
+    const expression = formatNumber(previous) + ' ' + SYMBOL[operator] + ' ' + formatNumber(value) + ' =';
+
+    if (!isFinite(result)) {
+      historyText = expression;
+      setError();
+      return;
+    }
+
+    historyText = expression;
+    current = String(result);
+    previous = null;
+    operator = null;
+    waitingForOperand = false;
+    justEvaluated = true;
+    error = false;
+
+    render();
+    displayEl.classList.add('flash');
+    setTimeout(function () { displayEl.classList.remove('flash'); }, 220);
+  }
+
+  function backspace() {
+    if (error) { clearAll(); return; }
+
+    if (waitingForOperand || justEvaluated) {
+      justEvaluated = false;
+      waitingForOperand = false;
+      current = '0';
+      historyText = '\u00a0';
+      render();
+      return;
+    }
+
+    current = current.slice(0, -1);
+    if (current === '' || current === '-' || current === '-0') current = '0';
+    render();
+  }
+
+  function toggleSign() {
+    if (error) return;
+    if (current.charAt(0) === '-') {
+      current = current.slice(1);
+    } else if (parseFloat(current) !== 0) {
+      current = '-' + current;
+    }
+    render();
+  }
+
+  function percent() {
+    if (error) return;
+    const n = parseFloat(current);
+    if (isNaN(n)) return;
+    current = String(n / 100);
+    render();
+  }
+
+  /* ---------------- Ejecutar acción ---------------- */
+  function activate(btn) {
+    const action = btn.dataset.action;
+    const value  = btn.dataset.value;
+
+    switch (action) {
+      case 'digit':   inputDigit(value);  beep(660, 0.05);  break;
+      case 'dot':     inputDot();         beep(660, 0.05);  break;
+      case 'op':      chooseOperator(value); beep(480, 0.06); break;
+      case 'equals':
+        equals();
+        beep(880, 0.09);
+        setTimeout(function () { beep(1180, 0.08); }, 70);
+        break;
+      case 'clear':   clearAll();         beep(190, 0.12, 'sawtooth', 0.05); break;
+      case 'back':    backspace();        beep(320, 0.06);  break;
+      case 'sign':    toggleSign();       beep(520, 0.05);  break;
+      case 'percent': percent();          beep(520, 0.05);  break;
+    }
+  }
+
+  /* ---------------- Eventos ---------------- */
+  keysEl.addEventListener('click', function (e) {
+    const btn = e.target.closest('.key');
+    if (!btn) return;
+    activate(btn);
+  });
+
+  function pressBySelector(selector) {
+    const btn = document.querySelector(selector);
+    if (!btn) return;
+    btn.classList.add('is-pressed');
+    setTimeout(function () { btn.classList.remove('is-pressed'); }, 100);
+    activate(btn);
+  }
+
+  window.addEventListener('keydown', function (e) {
+    const k = e.key;
+    let sel = null;
+
+    if (/^[0-9]$/.test(k))                          sel = '[data-action="digit"][data-value="' + k + '"]';
+    else if (k === '.' || k === ',')                sel = '[data-action="dot"]';
+    else if (k === '+')                             sel = '[data-action="op"][data-value="+"]';
+    else if (k === '-')                             sel = '[data-action="op"][data-value="-"]';
+    else if (k === '*' || k === 'x' || k === 'X')   sel = '[data-action="op"][data-value="*"]';
+    else if (k === '/')                             sel = '[data-action="op"][data-value="/"]';
+    else if (k === 'Enter' || k === '=')            sel = '[data-action="equals"]';
+    else if (k === 'Backspace')                     sel = '[data-action="back"]';
+    else if (k === 'Escape' || k === 'Delete')      sel = '[data-action="clear"]';
+    else if (k === '%')                             sel = '[data-action="percent"]';
+
+    if (sel) {
+      e.preventDefault();
+      pressBySelector(sel);
+    }
+  });
+
+  /* ---------------- Arranque ---------------- */
+  render();
+})();
+</script>
+
+</body>
+</html>
