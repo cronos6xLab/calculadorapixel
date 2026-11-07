@@ -87,6 +87,49 @@
     animation:fadeOut 1.2s ease .15s forwards;
   }
   @keyframes fadeOut{to{opacity:0}}
+
+  /* ---------- Botón de silencio ---------- */
+  #mute{
+    position:absolute;top:54px;right:54px;z-index:15;
+    width:118px;height:118px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:56px;line-height:1;
+    background:rgba(255,255,255,.09);
+    border:4px solid rgba(255,255,255,.20);
+    color:#fff;cursor:pointer;user-select:none;
+    backdrop-filter:blur(6px);
+    transition:transform .18s ease, background .18s ease;
+  }
+  #mute:active{transform:scale(.92);background:rgba(255,255,255,.18);}
+
+  /* ---------- Pantalla de inicio (desbloquea el audio) ---------- */
+  #startOverlay{
+    position:absolute;inset:0;z-index:20;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:56px;text-align:center;
+    background:radial-gradient(circle at 50% 44%,rgba(40,16,86,.86),rgba(5,3,12,.95));
+    backdrop-filter:blur(8px);
+    cursor:pointer;
+    transition:opacity .5s ease, visibility .5s;
+  }
+  #startOverlay.hide{opacity:0;visibility:hidden;pointer-events:none;}
+  #startOverlay .btn{
+    font-size:74px;font-weight:900;color:#fff;
+    padding:48px 88px;border-radius:90px;
+    letter-spacing:-1.5px;line-height:1.05;
+    background:linear-gradient(145deg,#ff5a6e,#b23bff);
+    box-shadow:0 34px 90px rgba(178,59,255,.5),
+               0 0 0 9px rgba(255,255,255,.09) inset;
+    animation:pulse 1.9s ease-in-out infinite;
+  }
+  #startOverlay .hint{
+    font-size:40px;font-weight:700;color:#cbb8ff;letter-spacing:.5px;
+  }
+  @keyframes pulse{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.045);}
+  }
 </style>
 </head>
 <body>
@@ -99,6 +142,13 @@
 
   <div id="vignette"></div>
   <div id="fade"></div>
+
+  <div id="mute" title="Silenciar">🔊</div>
+
+  <div id="startOverlay">
+    <div class="btn">▶ TOCA<br>PARA EMPEZAR</div>
+    <div class="hint">Con voz · 30 segundos</div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -250,7 +300,6 @@
   function createBoy(){
     var g = new THREE.Group();
 
-    /* piernas + zapatos */
     [-0.46, 0.46].forEach(function(x){
       var leg = box(0.76, 1.55, 0.82, PANTS);
       leg.position.set(x, -2.5, 0);
@@ -261,17 +310,14 @@
       g.add(shoe);
     });
 
-    /* torso */
     var body = box(1.95, 1.75, 1.1, SHIRT);
     body.position.set(0, -0.9, 0);
     g.add(body);
 
-    /* detalle del cuello */
     var collar = box(0.7, 0.16, 1.14, 0xffffff, { roughness: 0.9 });
     collar.position.set(0, -0.05, 0);
     g.add(collar);
 
-    /* ---- cabeza (pivote en el cuello) ---- */
     var head = new THREE.Group();
     head.position.set(0, 0.05, 0);
 
@@ -279,19 +325,16 @@
     headCube.position.set(0, 0.8, 0);
     head.add(headCube);
 
-    /* ojos */
     [-0.34, 0.34].forEach(function(x){
       var eye = box(0.24, 0.3, 0.08, DARK, { roughness: 0.4 });
       eye.position.set(x, 0.92, 0.81);
       head.add(eye);
     });
 
-    /* boca */
     var mouth = box(0.42, 0.12, 0.08, 0x8d4a3a, { roughness: 0.6 });
     mouth.position.set(0, 0.42, 0.81);
     head.add(mouth);
 
-    /* gorra roja */
     var capTop = box(1.74, 0.44, 1.74, CAPC, { roughness: 0.75 });
     capTop.position.set(0, 1.62, 0);
     head.add(capTop);
@@ -306,7 +349,6 @@
 
     g.add(head);
 
-    /* ---- brazos (pivote en el hombro) ---- */
     function makeArm(side){
       var arm = new THREE.Group();
       arm.position.set(side * 1.27, -0.3, 0);
@@ -341,7 +383,6 @@
     var body = new THREE.Mesh(new THREE.BoxGeometry(2.9, 2.9, 2.9), bodyMat);
     g.add(body);
 
-    /* ojos (grupo con pivote a la altura de los ojos -> parpadeo limpio) */
     var eyeGroup = new THREE.Group();
     eyeGroup.position.set(0, 0.48, 0);
 
@@ -363,7 +404,6 @@
     });
     g.add(eyeGroup);
 
-    /* boca */
     var mouth = new THREE.Mesh(
       new THREE.BoxGeometry(0.78, 0.16, 0.12),
       new THREE.MeshStandardMaterial({ color: 0x8a3a1e, roughness: 0.6 })
@@ -371,7 +411,6 @@
     mouth.position.set(0, -0.56, 1.46);
     g.add(mouth);
 
-    /* brillo naranja */
     var light = new THREE.PointLight(0xff9a6a, 1.1, 22);
     light.position.set(0, 0, 2.2);
     g.add(light);
@@ -425,11 +464,6 @@
   var bs = { armLz: -0.08, armRz: 0.08, armLx: 0, armRx: 0, headX: 0, headY: 0, headZ: 0 };
   var cs = { rotY: 0, rotX: 0, rotZ: 0, posY: -1.5, sq: 1, pupil: -0.06 };
 
-  function damp(cur, target, lambda, dt){
-    return cur + (target - cur) * (1 - Math.exp(-lambda * dt));
-  }
-
-  /* ---------- CHICO ---------- */
   function updateBoy(t, dt){
     var tArmLz = -0.10, tArmRz = 0.10;
     var tArmLx = 0, tArmRx = 0;
@@ -439,7 +473,6 @@
     var lean = 0;
 
     if (t >= 2.2 && t < 9.4){
-      /* hablando y señalando a Claude */
       tArmRz = 1.30 + Math.sin(t * 7.0) * 0.13;
       tArmRx = -0.45;
       tArmLz = -0.18 + Math.sin(t * 7.0 + 2.0) * 0.10;
@@ -448,20 +481,17 @@
       bob = Math.sin(t * 6.0) * 0.10;
       lean = 0.07;
     } else if (t >= 9.4 && t < 17.4){
-      /* escuchando */
       tHeadY = 0.30 + Math.sin(t * 1.6) * 0.05;
       tHeadZ = -0.12;
       tHeadX = 0.06;
       bob = Math.sin(t * 1.8) * 0.07;
     } else if (t >= 17.4 && t < 25.2){
-      /* ¡entendió! asiente y salta */
       tHeadX = Math.sin(t * 9.0) * 0.28;
       tHeadY = 0.10;
       tArmLz = -0.55; tArmRz = 0.55;
       tArmLx = -0.28; tArmRx = -0.28;
       hop = Math.abs(Math.sin(t * 4.0)) * 0.24;
     } else if (t >= 25.2){
-      /* despedida saludando */
       tArmRz = 2.45 + Math.sin(t * 8.0) * 0.35;
       tArmLz = -0.20;
       tHeadY = Math.sin(t * 1.2) * 0.12;
@@ -490,7 +520,6 @@
     boy.group.rotation.y = lean;
   }
 
-  /* ---------- CLAUDE ---------- */
   function updateClaude(t, dt){
     var tRotY = Math.sin(t * 1.1) * 0.22;
     var tRotX = Math.sin(t * 1.4) * 0.10;
@@ -500,12 +529,10 @@
     var tPupil = -0.08;
 
     if (t >= 2.2 && t < 9.4){
-      /* escuchando al chico */
       tRotY = 0.32 + Math.sin(t * 1.6) * 0.12;
       tRotZ = Math.sin(t * 1.2) * 0.10;
       tPupil = -0.13;
     } else if (t >= 9.4 && t < 17.4){
-      /* habla (susurra): rebote suave y squash */
       tRotY = Math.sin(t * 4.2) * 0.30;
       tRotZ = Math.sin(t * 3.4) * 0.12;
       tRotX = Math.sin(t * 3.0) * 0.14;
@@ -513,7 +540,6 @@
       tSq = 1 + Math.sin(t * 6.0) * 0.05;
       tPupil = -0.04;
     } else if (t >= 17.4 && t < 25.2){
-      /* contento: brinca */
       tRotY = Math.sin(t * 5.0) * 0.45;
       tRotZ = Math.sin(t * 5.0 + 1) * 0.16;
       tPosY = -1.3 + Math.abs(Math.sin(t * 3.4)) * 0.42;
@@ -536,30 +562,26 @@
     claude.group.position.y = cs.posY;
     claude.group.scale.set(1 / Math.sqrt(cs.sq), cs.sq, 1 / Math.sqrt(cs.sq));
 
-    /* parpadeo */
-    var b = t % 3.6;
+    /* parpadeo (usa el tiempo ambiente para que ocurra siempre) */
+    var b = ambientT % 3.6;
     var blink = (b < 0.12) ? 0.12 : 1;
     claude.eyes.scale.y = blink;
 
-    /* pupilas mirando al chico */
     for (var i = 0; i < claude.pupils.length; i++){
       claude.pupils[i].mesh.position.x = claude.pupils[i].baseX + cs.pupil;
     }
 
-    /* luz naranja que respira */
     orangeGlow.intensity = 1.4 + Math.sin(t * 3.0) * 0.5;
     orangeGlow.position.x = claude.group.position.x;
     orangeGlow.position.y = claude.group.position.y;
   }
 
-  /* ---------- CÁMARA ---------- */
   function updateCamera(t){
     camera.position.x = Math.sin(t * 0.18) * 0.8;
     camera.position.y = 2 + Math.sin(t * 0.23) * 0.35;
     camera.lookAt(0, -0.8, 0);
   }
 
-  /* ---------- PARTÍCULAS + TECLAS ---------- */
   function updateParticles(t){
     for (var i = 0; i < particles.length; i++){
       var p = particles[i];
@@ -573,45 +595,200 @@
     }
   }
 
-  /* ---------- BOCADILLOS ---------- */
+  /* ============================================================
+     11. BOCADILLOS + GUION
+     ============================================================ */
   var b1 = document.getElementById('b1');
   var b2 = document.getElementById('b2');
   var b3 = document.getElementById('b3');
 
+  var lines = [
+    { at: 2.3,  text: '¿Por qué Claude susurra?', who: 'boy',    fired: false },
+    { at: 9.9,  text: 'Porque estoy pensando…',   who: 'claude', fired: false },
+    { at: 17.8, text: 'Ah, ya entendí',           who: 'boy',    fired: false }
+  ];
+
   function updateBubbles(t){
-    b1.classList.toggle('show', t >= 2.3 && t < 9.4);
-    b2.classList.toggle('show', t >= 9.9 && t < 17.3);
-    b3.classList.toggle('show', t >= 17.8 && t < 25.0);
+    b1.classList.toggle('show', started && t >= 2.3  && t < 9.4);
+    b2.classList.toggle('show', started && t >= 9.9  && t < 17.3);
+    b3.classList.toggle('show', started && t >= 17.8 && t < 25.0);
   }
 
   /* ============================================================
-     11. BUCLE PRINCIPAL
+     12. VOZ (Web Speech API)
      ============================================================ */
-  var DURATION = 30;
-  var clock = new THREE.Clock();
-  var lastElapsed = 0;
+  var synth = ('speechSynthesis' in window) ? window.speechSynthesis : null;
+  var voices = [];
+  var voiceOn = true;
 
-  function animate(){
+  function loadVoices(){
+    if (!synth) return;
+    try { voices = synth.getVoices() || []; } catch(e){ voices = []; }
+  }
+  loadVoices();
+  if (synth){
+    if (typeof synth.addEventListener === 'function'){
+      synth.addEventListener('voiceschanged', loadVoices);
+    } else {
+      synth.onvoiceschanged = loadVoices;
+    }
+    setTimeout(loadVoices, 300);
+    setTimeout(loadVoices, 1400);
+  }
+
+  function pickVoice(who){
+    if (!voices.length) loadVoices();
+    var es = [];
+    for (var i = 0; i < voices.length; i++){
+      if (/^es/i.test(voices[i].lang || '')) es.push(voices[i]);
+    }
+    if (!es.length) return null;
+
+    /* Claude prefiere una voz masculina si existe */
+    if (who === 'claude'){
+      for (var m = 0; m < es.length; m++){
+        if (/male|hombre|diego|jorge|juan|carlos|enrique|pablo|miguel/i.test(es[m].name)) return es[m];
+      }
+    } else {
+      for (var f = 0; f < es.length; f++){
+        if (/female|mujer|monica|paulina|helena|lucia|sabina|marisol|elena/i.test(es[f].name)) return es[f];
+      }
+    }
+
+    for (var k = 0; k < es.length; k++){
+      if (/es-MX|es-US|es-419/i.test(es[k].lang)) return es[k];
+    }
+    for (var l = 0; l < es.length; l++){
+      if (/es-ES/i.test(es[l].lang)) return es[l];
+    }
+    return es[0];
+  }
+
+  function speak(text, who){
+    if (!synth || !voiceOn) return;
+    try { synth.cancel(); } catch(e){}
+
+    var u = new SpeechSynthesisUtterance(text);
+    var v = pickVoice(who);
+    if (v){ u.voice = v; u.lang = v.lang; } else { u.lang = 'es-ES'; }
+
+    if (who === 'claude'){
+      u.pitch  = 0.55;   /* grave */
+      u.rate   = 0.80;   /* lento */
+      u.volume = 0.30;   /* bajito = susurro */
+    } else {
+      u.pitch  = 1.30;   /* agudo, juvenil */
+      u.rate   = 1.03;
+      u.volume = 0.95;
+    }
+
+    try { synth.speak(u); } catch(e){}
+  }
+
+  function unlockVoice(){
+    if (!synth) return;
+    try {
+      var u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      synth.speak(u);
+      setTimeout(function(){ try { synth.cancel(); } catch(e){} }, 60);
+    } catch(e){}
+  }
+
+  function updateVoice(t){
+    if (!started || !voiceOn) return;
+    for (var i = 0; i < lines.length; i++){
+      var L = lines[i];
+      if (!L.fired && t >= L.at){
+        L.fired = true;
+        speak(L.text, L.who);
+      }
+    }
+  }
+
+  function onLoopRestart(){
+    for (var i = 0; i < lines.length; i++) lines[i].fired = false;
+    if (synth){ try { synth.cancel(); } catch(e){} }
+  }
+
+  /* ============================================================
+     13. CONTROLES: INICIO Y SILENCIO
+     ============================================================ */
+  var started = false;
+  var ambientT = 0;
+  var tAnim = 0;
+  var DURATION = 30;
+
+  var overlay = document.getElementById('startOverlay');
+  var muteBtn = document.getElementById('mute');
+  if (!synth) muteBtn.style.display = 'none';
+
+  function startShow(){
+    if (started) return;
+    started = true;
+    tAnim = 0;
+    for (var i = 0; i < lines.length; i++) lines[i].fired = false;
+    if (synth){ try { synth.cancel(); } catch(e){} }
+
+    overlay.classList.add('hide');
+    unlockVoice();
+  }
+
+  overlay.addEventListener('click', startShow);
+  overlay.addEventListener('touchend', function(e){
+    if (!started){ e.preventDefault(); startShow(); }
+  }, { passive: false });
+
+  muteBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    voiceOn = !voiceOn;
+    muteBtn.textContent = voiceOn ? '🔊' : '🔇';
+    if (synth){
+      if (!voiceOn){ try { synth.cancel(); } catch(err){} }
+      else { unlockVoice(); }
+    }
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden && synth){ try { synth.cancel(); } catch(e){} }
+  });
+
+  /* ============================================================
+     14. BUCLE PRINCIPAL
+     ============================================================ */
+  var lastMs = performance.now();
+
+  function animate(now){
     requestAnimationFrame(animate);
 
-    var elapsed = clock.getElapsedTime();
-    var dt = elapsed - lastElapsed;
-    lastElapsed = elapsed;
+    if (now === undefined) now = performance.now();
+    var dt = (now - lastMs) / 1000;
+    lastMs = now;
+    if (!isFinite(dt) || dt < 0) dt = 0;
     if (dt > 0.1) dt = 0.1;
-    if (dt < 0) dt = 0;
 
-    var t = elapsed % DURATION;
+    ambientT += dt;
+
+    if (started){
+      tAnim += dt;
+      if (tAnim >= DURATION){
+        tAnim -= DURATION;
+        onLoopRestart();
+      }
+    }
+    var t = tAnim;
 
     updateBoy(t, dt);
     updateClaude(t, dt);
-    updateCamera(t);
-    updateParticles(t);
+    updateCamera(ambientT);
+    updateParticles(ambientT);
     updateBubbles(t);
+    updateVoice(t);
 
     renderer.render(scene, camera);
   }
 
-  animate();
+  requestAnimationFrame(animate);
 
 })();
 </script>
