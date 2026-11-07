@@ -1,1563 +1,619 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculadora Minecraft · Científica + Gráfica</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>¿Por qué Claude susurra?</title>
 <style>
-  :root{
-    --gui:        #c6c6c6;
-    --gui-light:  #ffffff;
-    --outline:    #2b2b2b;
-    --screen-glow:#7cfc00;
-    --sci:        #6f4a9e;
-    --sci-hover:  #8359b8;
-    --graph:      #2f7bbf;
-    --graph-hover:#3a8fd9;
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{
+    margin:0;padding:0;width:100%;height:100%;
+    background:#05030c;overflow:hidden;
+    font-family:"Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  #stage{
+    position:absolute;top:50%;left:50%;
+    width:1080px;height:1920px;
+    transform:translate(-50%,-50%) scale(1);
+    transform-origin:center center;
+    overflow:hidden;
+    background:#0a0620;
+  }
+  #c{display:block;width:1080px;height:1920px;}
+
+  /* ---------- Bocadillos ---------- */
+  .bubble{
+    position:absolute;
+    padding:34px 46px;
+    border-radius:52px;
+    font-size:62px;
+    font-weight:800;
+    line-height:1.12;
+    letter-spacing:-1px;
+    opacity:0;
+    transform:scale(.5) translateY(46px);
+    transition:opacity .26s ease, transform .5s cubic-bezier(.34,1.56,.64,1);
+    will-change:transform,opacity;
+    pointer-events:none;
+  }
+  .bubble.show{opacity:1;transform:scale(1) translateY(0);}
+
+  .b1,.b3{
+    --fill:#fff4e2;--line:#ff4d5e;
+    left:62px;max-width:640px;
+    background:var(--fill);color:#20113a;
+    border:9px solid var(--line);
+    box-shadow:0 28px 70px rgba(0,0,0,.6),0 0 70px rgba(255,77,94,.28);
+  }
+  .b1{top:236px;}
+  .b3{top:290px;max-width:600px;}
+
+  .b1::before,.b3::before{
+    content:"";position:absolute;left:88px;bottom:-72px;
+    width:42px;height:42px;border-radius:50%;
+    background:var(--fill);border:8px solid var(--line);
+  }
+  .b1::after,.b3::after{
+    content:"";position:absolute;left:64px;bottom:-116px;
+    width:26px;height:26px;border-radius:50%;
+    background:var(--fill);border:7px solid var(--line);
   }
 
-  *{ box-sizing: border-box; }
-
-  html{ height: 100%; }
-
-  body{
-    margin: 0;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 28px 16px;
-    font-family: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
-    color: #fff;
-    background-color: #6b4f34;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23845c3a'/%3E%3Crect x='0' y='0' width='4' height='4' fill='%23764f30'/%3E%3Crect x='8' y='2' width='2' height='2' fill='%23694a2c'/%3E%3Crect x='12' y='0' width='4' height='2' fill='%238d6540'/%3E%3Crect x='2' y='8' width='4' height='4' fill='%23694a2c'/%3E%3Crect x='10' y='8' width='2' height='2' fill='%23916b45'/%3E%3Crect x='6' y='12' width='4' height='2' fill='%237a5233'/%3E%3Crect x='14' y='10' width='2' height='4' fill='%23654527'/%3E%3Crect x='0' y='14' width='2' height='2' fill='%23916b45'/%3E%3C/svg%3E");
-    background-size: 96px 96px;
-    image-rendering: pixelated;
-    overflow-x: hidden;
+  .b2{
+    --fill:#fff0e6;--line:#e07a4f;
+    right:62px;top:700px;max-width:680px;
+    background:var(--fill);color:#3d1608;
+    border:9px solid var(--line);
+    box-shadow:0 28px 70px rgba(0,0,0,.6),0 0 70px rgba(224,122,79,.32);
+  }
+  .b2::before{
+    content:"";position:absolute;right:88px;bottom:-72px;
+    width:42px;height:42px;border-radius:50%;
+    background:var(--fill);border:8px solid var(--line);
+  }
+  .b2::after{
+    content:"";position:absolute;right:64px;bottom:-116px;
+    width:26px;height:26px;border-radius:50%;
+    background:var(--fill);border:7px solid var(--line);
   }
 
-  body::after{
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(circle at 50% 45%, transparent 25%, rgba(0,0,0,.65) 100%);
-    pointer-events: none;
-    z-index: 1;
+  /* ---------- Overlays ---------- */
+  #vignette{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 46%,rgba(0,0,0,0) 42%,rgba(0,0,0,.62) 100%);
   }
-
-  /* ============ BLOQUES DE FONDO ============ */
-  .bg{
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
+  #fade{
+    position:absolute;inset:0;background:#05030c;pointer-events:none;
+    animation:fadeOut 1.2s ease .15s forwards;
   }
-
-  .block{
-    position: absolute;
-    width: 52px;
-    height: 52px;
-    opacity: .38;
-    background-color: #7a5233;
-    background-image:
-      linear-gradient(to bottom, #5fa83a 0 22%, transparent 22%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%237a5233'/%3E%3Crect x='0' y='0' width='3' height='2' fill='%23654527'/%3E%3Crect x='5' y='3' width='2' height='2' fill='%238d6540'/%3E%3Crect x='2' y='5' width='2' height='3' fill='%23654527'/%3E%3C/svg%3E");
-    background-size: 100% 100%, 26px 26px;
-    image-rendering: pixelated;
-    box-shadow: 0 0 0 2px rgba(0,0,0,.25), 6px 6px 0 rgba(0,0,0,.25);
-    animation: bob 12s ease-in-out infinite;
-  }
-
-  .b1{ left: 6%;  top: 12%;  animation-duration: 11s; }
-  .b2{ right: 8%; top: 22%;  animation-duration: 14s; animation-delay: -3s; }
-  .b3{ left: 12%; bottom: 14%; animation-duration: 13s; animation-delay: -6s; }
-  .b4{ right: 14%; bottom: 18%; animation-duration: 16s; animation-delay: -9s; }
-  .b5{ left: 45%; top: 6%;  width: 34px; height: 34px; animation-duration: 18s; animation-delay: -2s; }
-
-  @keyframes bob{
-    0%, 100%{ transform: translateY(0) rotate(0deg); }
-    50%     { transform: translateY(-26px) rotate(3deg); }
-  }
-
-  /* ============ PANEL PRINCIPAL ============ */
-  .calc{
-    position: relative;
-    z-index: 2;
-    width: min(400px, 92vw);
-    padding: 16px;
-    background-color: var(--gui);
-    box-shadow:
-      inset  3px  3px 0 0 var(--gui-light),
-      inset -3px -3px 0 0 #7a7a7a,
-      0 0 0 4px var(--outline),
-      0 0 0 8px #111111,
-      18px 18px 0 0 rgba(0,0,0,.45);
-  }
-
-  .calc__titlebar{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    padding: 7px 8px;
-    background: #3b3b3b;
-    box-shadow:
-      inset  2px  2px 0 #575757,
-      inset -2px -2px 0 #1d1d1d;
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: #e9e9e9;
-  }
-
-  .creeper{ width: 18px; height: 18px; display: block; flex: none; }
-  .calc__title{ flex: 1; white-space: nowrap; overflow: hidden; }
-  .calc__tag{ color: var(--screen-glow); font-size: 8px; }
-
-  /* Botones de herramientas (SCI / GRAPH) */
-  .calc__tool{
-    flex: none;
-    font-family: inherit;
-    font-size: 8px;
-    letter-spacing: 1px;
-    padding: 6px 8px;
-    border: 0;
-    border-radius: 0;
-    color: #fff;
-    text-shadow: 1px 1px 0 rgba(0,0,0,.7);
-    cursor: pointer;
-    background: var(--sci);
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.4),
-      inset -2px -2px 0 rgba(0,0,0,.45),
-      0 3px 0 #1d1d1d;
-    transition: background .15s ease, transform .05s ease, box-shadow .05s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .calc__tool:hover{ background: var(--sci-hover); }
-  .calc__tool:active{
-    transform: translateY(3px);
-    box-shadow: inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.5);
-  }
-  .calc__tool:focus-visible{ outline: 3px solid #ffe066; outline-offset: 3px; }
-
-  .calc__tool--graph{ background: var(--graph); }
-  .calc__tool--graph:hover{ background: var(--graph-hover); }
-
-  .calc__tool.is-on{
-    background: #3f9b4a;
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.45),
-      inset -2px -2px 0 rgba(0,0,0,.4),
-      0 3px 0 #1d1d1d,
-      0 0 12px rgba(124,252,0,.75);
-  }
-
-  /* ============ PANTALLA ============ */
-  .display{
-    position: relative;
-    margin-bottom: 16px;
-    padding: 14px 12px;
-    min-height: 94px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: flex-end;
-    gap: 10px;
-    overflow: hidden;
-    background: radial-gradient(ellipse at center, #12290f 0%, #070f08 100%);
-    box-shadow:
-      inset  4px  4px 0 rgba(0,0,0,.9),
-      inset -4px -4px 0 rgba(255,255,255,.07),
-      0 0 0 4px #2b2b2b;
-  }
-
-  .display::before{
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      to bottom,
-      rgba(0,0,0,.28) 0 2px,
-      transparent     2px 4px
-    );
-    opacity: .55;
-    pointer-events: none;
-  }
-
-  .display__history{
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: #4e9b52;
-    text-shadow: 1px 1px 0 #000;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    min-height: 11px;
-  }
-
-  .display__current{
-    font-size: clamp(14px, 4.4vw, 22px);
-    color: var(--screen-glow);
-    text-shadow: 0 0 10px rgba(124,252,0,.65), 2px 2px 0 #08260b;
-    white-space: nowrap;
-    overflow: hidden;
-    max-width: 100%;
-    line-height: 1.35;
-  }
-
-  .display.is-error{ animation: shake .32s steps(2); }
-  .display.is-error .display__current{
-    color: #ff5b5b;
-    text-shadow: 0 0 10px rgba(255,60,60,.75), 2px 2px 0 #3a0000;
-  }
-
-  .display.flash{ animation: flash .22s steps(2); }
-
-  @keyframes shake{
-    0%,100%{ transform: translateX(0); }
-    25%    { transform: translateX(-5px); }
-    75%    { transform: translateX(5px); }
-  }
-
-  @keyframes flash{
-    0%  { filter: brightness(1.7); }
-    100%{ filter: none; }
-  }
-
-  /* ============ PANEL CIENTÍFICO ============ */
-  .sci-panel{
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    margin-bottom: 0;
-    transition:
-      max-height   .38s steps(7),
-      opacity      .28s steps(4),
-      margin-bottom .38s steps(7);
-  }
-
-  .calc.sci-open .sci-panel{
-    max-height: 240px;
-    opacity: 1;
-    margin-bottom: 10px;
-  }
-
-  .sci-panel .key{
-    padding: 12px 0 10px;
-    font-size: clamp(9px, 2.7vw, 12px);
-  }
-
-  .key--sci{ background-color: var(--sci); }
-  .key--sci:hover{ background-color: var(--sci-hover); }
-
-  .key--sci.alt{
-    background-color: #3f9b4a;
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.45),
-      inset -2px -2px 0 rgba(0,0,0,.4),
-      0 4px 0 #2b2b2b,
-      0 0 10px rgba(124,252,0,.6);
-  }
-
-  /* ============ TECLADO ============ */
-  .keys{
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-
-  .key{
-    font-family: inherit;
-    font-size: clamp(11px, 3.1vw, 15px);
-    line-height: 1;
-    padding: 16px 0 14px;
-    border: 0;
-    border-radius: 0;
-    color: #fff;
-    text-shadow: 2px 2px 0 rgba(0,0,0,.6);
-    cursor: pointer;
-    background-color: #8b8b8b;
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.5),
-      inset -2px -2px 0 rgba(0,0,0,.4),
-      0 4px 0 #2b2b2b;
-    transition: background-color .12s ease, transform .05s ease, box-shadow .05s ease;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    touch-action: manipulation;
-  }
-
-  .key--num{ background-color: #8b8b8b; }
-  .key--num:hover{ background-color: #a3a3a3; }
-
-  .key--op{ background-color: #a4712f; }
-  .key--op:hover{ background-color: #bd8639; }
-
-  .key--fn{ background-color: #6b7f8c; }
-  .key--fn:hover{ background-color: #8299a8; }
-
-  .key--danger{ background-color: #a83a3a; }
-  .key--danger:hover{ background-color: #c44747; }
-
-  .key--eq{ background-color: #3f9b4a; }
-  .key--eq:hover{ background-color: #4dbb5a; }
-
-  .key:active,
-  .key.is-pressed{
-    transform: translateY(4px);
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.35),
-      inset -2px -2px 0 rgba(0,0,0,.5);
-  }
-
-  .key--op.is-active{
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.5),
-      inset -2px -2px 0 rgba(0,0,0,.4),
-      0 4px 0 #2b2b2b,
-      0 0 0 3px #ffe066;
-  }
-
-  .key:focus-visible{
-    outline: 3px solid #ffe066;
-    outline-offset: 3px;
-  }
-
-  /* ============ MODAL GRAFICADORA ============ */
-  .graph-modal{
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    display: grid;
-    place-items: center;
-    padding: 16px;
-    background: rgba(0,0,0,.78);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity .22s ease, visibility 0s linear .22s;
-  }
-  .graph-modal.is-open{
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transition: opacity .22s ease, visibility 0s;
-  }
-
-  .graph-panel{
-    width: min(520px, 94vw);
-    max-height: 96vh;
-    overflow-y: auto;
-    padding: 14px;
-    background: var(--gui);
-    box-shadow:
-      inset  3px  3px 0 0 var(--gui-light),
-      inset -3px -3px 0 0 #7a7a7a,
-      0 0 0 4px var(--outline),
-      0 0 0 8px #111111,
-      14px 14px 0 rgba(0,0,0,.45);
-    transform: scale(.96);
-    transition: transform .22s ease;
-  }
-  .graph-modal.is-open .graph-panel{ transform: scale(1); }
-
-  .graph-titlebar{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    padding: 7px 8px;
-    background: #3b3b3b;
-    box-shadow:
-      inset  2px  2px 0 #575757,
-      inset -2px -2px 0 #1d1d1d;
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: #e9e9e9;
-  }
-  .graph-titlebar > span{ flex: 1; }
-
-  .graph-close{
-    flex: none;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    font-family: inherit;
-    font-size: 10px;
-    line-height: 1;
-    border: 0;
-    border-radius: 0;
-    color: #fff;
-    background: #a83a3a;
-    cursor: pointer;
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.4),
-      inset -2px -2px 0 rgba(0,0,0,.45),
-      0 2px 0 #1d1d1d;
-    transition: background .12s ease, transform .05s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .graph-close:hover{ background: #c44747; }
-  .graph-close:active{ transform: translateY(2px); }
-
-  .graph-canvas-wrap{
-    position: relative;
-    width: 100%;
-    max-width: 480px;
-    aspect-ratio: 4 / 3;
-    margin: 0 auto 12px;
-    overflow: hidden;
-    background: #081a0a;
-    box-shadow:
-      inset  4px  4px 0 rgba(0,0,0,.9),
-      inset -4px -4px 0 rgba(255,255,255,.07),
-      0 0 0 4px #2b2b2b;
-  }
-  .graph-canvas-wrap::after{
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      to bottom,
-      rgba(0,0,0,.16) 0 2px,
-      transparent     2px 4px
-    );
-    pointer-events: none;
-  }
-  .graph-canvas{
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-  .graph-canvas.flash{ animation: canvasFlash .3s ease; }
-  @keyframes canvasFlash{
-    0%  { filter: brightness(1.6); }
-    100%{ filter: none; }
-  }
-
-  .graph-input-row{
-    display: flex;
-    align-items: stretch;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .graph-eq{
-    display: flex;
-    align-items: center;
-    padding: 0 6px;
-    font-size: 12px;
-    color: #2b2b2b;
-    text-shadow: 1px 1px 0 rgba(255,255,255,.55);
-  }
-  .graph-input{
-    flex: 1;
-    min-width: 0;
-    padding: 9px 10px;
-    font-family: 'Courier New', ui-monospace, monospace;
-    font-size: 14px;
-    font-weight: bold;
-    border: 0;
-    border-radius: 0;
-    color: #7cfc00;
-    background: #0a1a0c;
-    outline: none;
-    box-shadow:
-      inset  3px  3px 0 rgba(0,0,0,.9),
-      inset -3px -3px 0 rgba(255,255,255,.05),
-      0 0 0 3px #2b2b2b;
-    transition: box-shadow .15s ease;
-  }
-  .graph-input:focus{
-    box-shadow:
-      inset  3px  3px 0 rgba(0,0,0,.9),
-      inset -3px -3px 0 rgba(255,255,255,.05),
-      0 0 0 3px #ffe066;
-  }
-
-  .graph-btn{
-    font-family: inherit;
-    font-size: 9px;
-    letter-spacing: 1px;
-    padding: 8px 12px;
-    border: 0;
-    border-radius: 0;
-    color: #fff;
-    text-shadow: 1px 1px 0 rgba(0,0,0,.6);
-    cursor: pointer;
-    background: #6b7f8c;
-    box-shadow:
-      inset  2px  2px 0 rgba(255,255,255,.45),
-      inset -2px -2px 0 rgba(0,0,0,.4),
-      0 3px 0 #2b2b2b;
-    transition: background .12s ease, transform .05s ease, box-shadow .05s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .graph-btn:hover{ background: #8299a8; }
-  .graph-btn:active{
-    transform: translateY(3px);
-    box-shadow: inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.5);
-  }
-  .graph-btn:focus-visible{ outline: 3px solid #ffe066; outline-offset: 3px; }
-
-  .graph-btn--plot{
-    background: #3f9b4a;
-    min-width: 74px;
-  }
-  .graph-btn--plot:hover{ background: #4dbb5a; }
-
-  .graph-controls{
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-  .graph-controls .graph-btn{ flex: 1; }
-  .graph-controls .graph-btn[data-zoom]{ font-size: 14px; padding: 6px 12px; }
-
-  .graph-error{
-    min-height: 14px;
-    margin-bottom: 6px;
-    font-size: 8px;
-    line-height: 1.5;
-    color: #ff7a7a;
-    text-shadow: 1px 1px 0 #3a0000;
-    letter-spacing: .5px;
-  }
-  .graph-error:not(:empty)::before{ content: '⚠ '; }
-
-  .graph-hint{
-    font-size: 7px;
-    line-height: 1.7;
-    letter-spacing: .5px;
-    color: #4a4a4a;
-    text-align: center;
-    text-shadow: 1px 1px 0 rgba(255,255,255,.5);
-  }
-
-  /* ============ RESPONSIVE ============ */
-  @media (max-width: 380px){
-    .calc{ padding: 12px; }
-    .keys, .sci-panel{ gap: 7px; }
-    .key{ padding: 13px 0 11px; }
-    .sci-panel .key{ padding: 10px 0 8px; }
-    .calc__tag{ display: none; }
-    .calc__title{ font-size: 8px; }
-    .calc__tool{ padding: 5px 6px; font-size: 7px; }
-    .graph-panel{ padding: 10px; }
-    .graph-btn{ font-size: 8px; padding: 7px 8px; }
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    *{ animation: none !important; transition: none !important; }
-  }
+  @keyframes fadeOut{to{opacity:0}}
 </style>
 </head>
 <body>
+<div id="stage">
+  <canvas id="c"></canvas>
 
-<!-- Bloques decorativos de fondo -->
-<div class="bg" aria-hidden="true">
-  <span class="block b1"></span>
-  <span class="block b2"></span>
-  <span class="block b3"></span>
-  <span class="block b4"></span>
-  <span class="block b5"></span>
+  <div class="bubble b1" id="b1">¿Por qué Claude susurra?</div>
+  <div class="bubble b2" id="b2">Porque estoy pensando…</div>
+  <div class="bubble b3" id="b3">Ah, ya entendí</div>
+
+  <div id="vignette"></div>
+  <div id="fade"></div>
 </div>
 
-<main class="calc" id="calc">
-
-  <div class="calc__titlebar">
-    <svg class="creeper" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
-      <rect width="8" height="8" fill="#4caf50"/>
-      <rect x="1" y="1" width="2" height="2" fill="#0f2b12"/>
-      <rect x="5" y="1" width="2" height="2" fill="#0f2b12"/>
-      <rect x="3" y="3" width="2" height="3" fill="#0f2b12"/>
-      <rect x="2" y="4" width="1" height="2" fill="#0f2b12"/>
-      <rect x="5" y="4" width="1" height="2" fill="#0f2b12"/>
-    </svg>
-    <span class="calc__title">CALCULADORA</span>
-    <span class="calc__tag">v1.2</span>
-    <button type="button" class="calc__tool" id="sciToggle"
-            aria-pressed="false" aria-controls="sciPanel"
-            title="Mostrar/ocultar funciones científicas">SCI</button>
-    <button type="button" class="calc__tool calc__tool--graph" id="graphToggle"
-            aria-haspopup="dialog"
-            title="Abrir graficadora">GRAPH</button>
-  </div>
-
-  <div class="display" id="display">
-    <div class="display__history" id="history" aria-hidden="true">&nbsp;</div>
-    <div class="display__current" id="current" aria-live="polite">0</div>
-  </div>
-
-  <!-- Panel científico -->
-  <div class="sci-panel" id="sciPanel" role="group" aria-label="Funciones científicas">
-    <button type="button" class="key key--sci" data-action="sci" data-value="sin" title="Seno">sin</button>
-    <button type="button" class="key key--sci" data-action="sci" data-value="cos" title="Coseno">cos</button>
-    <button type="button" class="key key--sci" data-action="sci" data-value="tan" title="Tangente">tan</button>
-    <button type="button" class="key key--sci" data-action="const" data-value="pi" title="Pi (π)">π</button>
-
-    <button type="button" class="key key--sci" data-action="sci" data-value="sqrt" title="Raíz cuadrada">√</button>
-    <button type="button" class="key key--sci" data-action="sci" data-value="square" title="Elevar al cuadrado">x²</button>
-    <button type="button" class="key key--op"  data-action="op"  data-value="^" title="Elevar a la potencia">xʸ</button>
-    <button type="button" class="key key--sci" data-action="sci" data-value="inv" title="Inverso (1/x)">1/x</button>
-
-    <button type="button" class="key key--sci" data-action="sci" data-value="log" title="Logaritmo base 10">log</button>
-    <button type="button" class="key key--sci" data-action="sci" data-value="ln" title="Logaritmo natural">ln</button>
-    <button type="button" class="key key--sci" data-action="const" data-value="e" title="Número e">e</button>
-    <button type="button" class="key key--sci" data-action="angle" id="angleBtn" title="Cambiar grados/radianes">DEG</button>
-  </div>
-
-  <div class="keys" id="keys">
-    <button type="button" class="key key--danger" data-action="clear">AC</button>
-    <button type="button" class="key key--fn"     data-action="back">DEL</button>
-    <button type="button" class="key key--fn"     data-action="percent">%</button>
-    <button type="button" class="key key--op"     data-action="op" data-value="/">÷</button>
-
-    <button type="button" class="key key--num" data-action="digit" data-value="7">7</button>
-    <button type="button" class="key key--num" data-action="digit" data-value="8">8</button>
-    <button type="button" class="key key--num" data-action="digit" data-value="9">9</button>
-    <button type="button" class="key key--op"  data-action="op" data-value="*">×</button>
-
-    <button type="button" class="key key--num" data-action="digit" data-value="4">4</button>
-    <button type="button" class="key key--num" data-action="digit" data-value="5">5</button>
-    <button type="button" class="key key--num" data-action="digit" data-value="6">6</button>
-    <button type="button" class="key key--op"  data-action="op" data-value="-">-</button>
-
-    <button type="button" class="key key--num" data-action="digit" data-value="1">1</button>
-    <button type="button" class="key key--num" data-action="digit" data-value="2">2</button>
-    <button type="button" class="key key--num" data-action="digit" data-value="3">3</button>
-    <button type="button" class="key key--op"  data-action="op" data-value="+">+</button>
-
-    <button type="button" class="key key--fn"  data-action="sign">±</button>
-    <button type="button" class="key key--num" data-action="digit" data-value="0">0</button>
-    <button type="button" class="key key--num" data-action="dot">.</button>
-    <button type="button" class="key key--eq"  data-action="equals">=</button>
-  </div>
-
-</main>
-
-<!-- ===== MODAL GRAFICADORA ===== -->
-<div class="graph-modal" id="graphModal" role="dialog" aria-modal="true"
-     aria-labelledby="graphTitle" aria-hidden="true">
-  <div class="graph-panel">
-    <div class="graph-titlebar">
-      <svg class="creeper" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" style="width:14px;height:14px">
-        <rect width="8" height="8" fill="#4caf50"/>
-        <rect x="1" y="1" width="2" height="2" fill="#0f2b12"/>
-        <rect x="5" y="1" width="2" height="2" fill="#0f2b12"/>
-        <rect x="3" y="3" width="2" height="3" fill="#0f2b12"/>
-        <rect x="2" y="4" width="1" height="2" fill="#0f2b12"/>
-        <rect x="5" y="4" width="1" height="2" fill="#0f2b12"/>
-      </svg>
-      <span id="graphTitle">GRAFICADORA</span>
-      <button type="button" class="graph-close" id="graphClose" aria-label="Cerrar">×</button>
-    </div>
-
-    <div class="graph-canvas-wrap">
-      <canvas class="graph-canvas" id="graphCanvas"></canvas>
-    </div>
-
-    <div class="graph-input-row">
-      <span class="graph-eq">y =</span>
-      <input class="graph-input" id="graphInput" type="text" value="sin(x)"
-             spellcheck="false" autocomplete="off" autocapitalize="off"
-             aria-label="Función a graficar" />
-      <button type="button" class="graph-btn graph-btn--plot" id="graphPlot">PLOT</button>
-    </div>
-
-    <div class="graph-controls">
-      <button type="button" class="graph-btn" id="graphZoomIn"  data-zoom="in"  title="Acercar">+</button>
-      <button type="button" class="graph-btn" id="graphZoomOut" data-zoom="out" title="Alejar">−</button>
-      <button type="button" class="graph-btn" id="graphReset"   title="Rango inicial">RESET</button>
-    </div>
-
-    <div class="graph-error" id="graphError" aria-live="polite"></div>
-    <div class="graph-hint" id="graphHint"></div>
-  </div>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-(function () {
+(function(){
   'use strict';
 
-  /* =========================================================
-     REFERENCIAS DEL DOM
-     ========================================================= */
-  const calcEl    = document.getElementById('calc');
-  const displayEl = document.getElementById('display');
-  const currentEl = document.getElementById('current');
-  const historyEl = document.getElementById('history');
-  const keysEl    = document.getElementById('keys');
-  const sciPanel  = document.getElementById('sciPanel');
-  const sciToggle = document.getElementById('sciToggle');
-  const angleBtn  = document.getElementById('angleBtn');
+  /* ============================================================
+     1. AJUSTE DE ESCALA (1080x1920 -> pantalla del móvil)
+     ============================================================ */
+  var stage = document.getElementById('stage');
+  function fitStage(){
+    var s = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+    stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  }
+  window.addEventListener('resize', fitStage);
+  window.addEventListener('orientationchange', function(){ setTimeout(fitStage, 120); });
+  fitStage();
 
-  const graphModal  = document.getElementById('graphModal');
-  const graphCanvas = document.getElementById('graphCanvas');
-  const graphInput  = document.getElementById('graphInput');
-  const graphPlot   = document.getElementById('graphPlot');
-  const graphClose  = document.getElementById('graphClose');
-  const graphZoomIn = document.getElementById('graphZoomIn');
-  const graphZoomOut= document.getElementById('graphZoomOut');
-  const graphReset  = document.getElementById('graphReset');
-  const graphError  = document.getElementById('graphError');
-  const graphHint   = document.getElementById('graphHint');
-  const graphToggle = document.getElementById('graphToggle');
+  /* ============================================================
+     2. RENDERER / ESCENA / CÁMARA
+     ============================================================ */
+  var canvas = document.getElementById('c');
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setSize(1080, 1920, false);
+  if (renderer.outputEncoding !== undefined && THREE.sRGBEncoding !== undefined){
+    renderer.outputEncoding = THREE.sRGBEncoding;
+  }
 
-  /* =========================================================
-     ESTADO DE LA CALCULADORA
-     ========================================================= */
-  let current            = '0';
-  let previous           = null;
-  let operator           = null;
-  let waitingForOperand  = false;
-  let justEvaluated      = false;
-  let error              = false;
-  let historyText        = '\u00a0';
-  let angleMode          = 'DEG';
+  var scene = new THREE.Scene();
+  scene.background = makeGradientTexture();
+  scene.fog = new THREE.FogExp2(0x150b30, 0.0125);
 
-  const OPS = {
-    '+': (a, b) => a + b,
-    '-': (a, b) => a - b,
-    '*': (a, b) => a * b,
-    '/': (a, b) => a / b,
-    '^': (a, b) => Math.pow(a, b)
-  };
-  const SYMBOL = { '+': '+', '-': '-', '*': '×', '/': '÷', '^': '^' };
+  var camera = new THREE.PerspectiveCamera(45, 1080 / 1920, 0.1, 400);
+  camera.position.set(0, 2, 25);
+  camera.lookAt(0, -0.8, 0);
 
-  /* =========================================================
-     SONIDO
-     ========================================================= */
-  let audioCtx = null;
+  /* Fondo degradado azul -> morado */
+  function makeGradientTexture(){
+    var cv = document.createElement('canvas');
+    cv.width = 8; cv.height = 1024;
+    var ctx = cv.getContext('2d');
+    var g = ctx.createLinearGradient(0, 0, 0, 1024);
+    g.addColorStop(0.00, '#04081e');
+    g.addColorStop(0.28, '#0a0b32');
+    g.addColorStop(0.58, '#180a3c');
+    g.addColorStop(0.84, '#290b46');
+    g.addColorStop(1.00, '#10041d');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 8, 1024);
+    var tex = new THREE.CanvasTexture(cv);
+    if (THREE.sRGBEncoding !== undefined) tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
 
-  function beep(freq, dur = 0.06, type = 'square', vol = 0.045) {
-    try {
-      if (!audioCtx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        audioCtx = new AC();
+  /* ============================================================
+     3. LUCES
+     ============================================================ */
+  scene.add(new THREE.HemisphereLight(0x9a8bff, 0x1a0b33, 0.95));
+
+  var key = new THREE.DirectionalLight(0xffe9d0, 1.15);
+  key.position.set(8, 16, 14);
+  scene.add(key);
+
+  var fill = new THREE.DirectionalLight(0x7b5cff, 0.6);
+  fill.position.set(-12, 4, 8);
+  scene.add(fill);
+
+  var purpleGlow = new THREE.PointLight(0x8a5cff, 2.2, 70);
+  purpleGlow.position.set(-11, 4, 6);
+  scene.add(purpleGlow);
+
+  var orangeGlow = new THREE.PointLight(0xff9a6a, 1.8, 40);
+  orangeGlow.position.set(4, 0, 4);
+  scene.add(orangeGlow);
+
+  /* ============================================================
+     4. HELPERS
+     ============================================================ */
+  function mat(color, opts){
+    var p = { color: color, roughness: 0.85, metalness: 0.0 };
+    if (opts) for (var k in opts) p[k] = opts[k];
+    return new THREE.MeshStandardMaterial(p);
+  }
+  function box(w, h, d, color, opts){
+    var m = (color && color.isMaterial) ? color : mat(color, opts);
+    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  }
+
+  /* ============================================================
+     5. TECLADO GIGANTE DE FONDO
+     ============================================================ */
+  var glowMats = [];
+  (function buildKeyboard(){
+    var group = new THREE.Group();
+
+    var baseGeo = new THREE.BoxGeometry(2.5, 0.9, 2.5);
+    var topGeo  = new THREE.BoxGeometry(2.02, 0.28, 2.02);
+
+    var baseMats = [
+      mat(0x1d1448, { roughness: 0.6, metalness: 0.18, emissive: 0x0a0420, emissiveIntensity: 1 }),
+      mat(0x221955, { roughness: 0.6, metalness: 0.18, emissive: 0x0a0420, emissiveIntensity: 1 }),
+      mat(0x1a1140, { roughness: 0.6, metalness: 0.18, emissive: 0x090318, emissiveIntensity: 1 }),
+      mat(0x261c5c, { roughness: 0.6, metalness: 0.18, emissive: 0x0c0526, emissiveIntensity: 1 })
+    ];
+    var topMat = mat(0x3a2b7a, { roughness: 0.45, metalness: 0.22, emissive: 0x241a5e, emissiveIntensity: 0.85 });
+
+    var cols = 11, rows = 8, step = 3.0;
+
+    for (var i = 0; i < cols; i++){
+      for (var j = 0; j < rows; j++){
+        var x = (i - (cols - 1) / 2) * step;
+        var z = -j * step;
+
+        var b = new THREE.Mesh(baseGeo, baseMats[(i * 7 + j * 3) % baseMats.length]);
+        b.position.set(x, 0, z);
+        group.add(b);
+
+        var tm = topMat;
+        if (Math.random() < 0.075){
+          tm = new THREE.MeshStandardMaterial({
+            color: 0x7b5cff, emissive: 0x8a6bff, emissiveIntensity: 1.5,
+            roughness: 0.35, metalness: 0.1
+          });
+          glowMats.push(tm);
+        }
+        var tp = new THREE.Mesh(topGeo, tm);
+        tp.position.set(x, 0.59, z);
+        group.add(tp);
       }
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t);
-      gain.gain.setValueAtTime(vol, t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(t);
-      osc.stop(t + dur + 0.02);
-    } catch (e) { /* silencio */ }
-  }
-
-  /* =========================================================
-     FORMATO Y UTILIDADES
-     ========================================================= */
-  function formatNumber(num) {
-    if (!isFinite(num)) return 'ERROR';
-    let s = String(num);
-    if (s.length <= 12) return s;
-
-    if (Math.abs(num) >= 1e12 || (Math.abs(num) < 1e-6 && num !== 0)) {
-      return num.toExponential(4).replace('e+', 'e');
-    }
-    s = String(parseFloat(num.toFixed(10)));
-    if (s.length > 12) return num.toExponential(4);
-    return s;
-  }
-
-  function displayValue() {
-    if (error) return 'ERROR';
-    if (current.length <= 12 && !/[eE]/.test(current)) return current;
-    return formatNumber(parseFloat(current));
-  }
-
-  function toRad(x) {
-    return angleMode === 'DEG' ? x * Math.PI / 180 : x;
-  }
-
-  function cleanNum(x) {
-    if (!isFinite(x)) return NaN;
-    return parseFloat(x.toPrecision(12));
-  }
-
-  function unaryHistory(name, value) {
-    const v = formatNumber(value);
-    switch (name) {
-      case 'sqrt':   return '\u221a(' + v + ') =';
-      case 'square': return v + '\u00b2 =';
-      case 'inv':    return '1/(' + v + ') =';
-      default:       return name + '(' + v + ') =';
-    }
-  }
-
-  /* =========================================================
-     RENDER CALCULADORA
-     ========================================================= */
-  function render() {
-    currentEl.textContent = displayValue();
-
-    if (operator !== null && previous !== null && !error) {
-      historyEl.textContent = formatNumber(previous) + ' ' + SYMBOL[operator];
-    } else {
-      historyEl.textContent = historyText;
     }
 
-    displayEl.classList.toggle('is-error', error);
-    updateActiveOperator();
-  }
+    group.rotation.x = 0.55;
+    group.position.set(0, -10.5, -6);
+    scene.add(group);
+  })();
 
-  function updateActiveOperator() {
-    const btns = keysEl.querySelectorAll('[data-action="op"]');
-    btns.forEach(function (btn) {
-      const active = waitingForOperand && !error && btn.dataset.value === operator;
-      btn.classList.toggle('is-active', active);
+  /* ============================================================
+     6. CHICO VOXEL CON GORRA ROJA
+     ============================================================ */
+  var SKIN  = 0xf2c79b;
+  var CAPC  = 0xe23b3b;
+  var SHIRT = 0x2fb8a8;
+  var PANTS = 0x2b3358;
+  var SHOE  = 0x14161f;
+  var DARK  = 0x241a33;
+
+  function createBoy(){
+    var g = new THREE.Group();
+
+    /* piernas + zapatos */
+    [-0.46, 0.46].forEach(function(x){
+      var leg = box(0.76, 1.55, 0.82, PANTS);
+      leg.position.set(x, -2.5, 0);
+      g.add(leg);
+
+      var shoe = box(0.84, 0.4, 1.06, SHOE);
+      shoe.position.set(x, -3.4, 0.12);
+      g.add(shoe);
     });
-  }
 
-  /* =========================================================
-     ACCIONES BÁSICAS
-     ========================================================= */
-  function clearAll() {
-    current = '0';
-    previous = null;
-    operator = null;
-    waitingForOperand = false;
-    justEvaluated = false;
-    error = false;
-    historyText = '\u00a0';
-    displayEl.classList.remove('is-error');
-    render();
-  }
-
-  function setError() {
-    error = true;
-    previous = null;
-    operator = null;
-    waitingForOperand = false;
-    justEvaluated = true;
-    current = '0';
-    render();
-  }
-
-  function inputDigit(d) {
-    if (error) clearAll();
-
-    if (waitingForOperand || justEvaluated) {
-      current = d;
-      waitingForOperand = false;
-      justEvaluated = false;
-      historyText = '\u00a0';
-    } else if (/[eE]/.test(current)) {
-      current = d;
-    } else if (current === '0') {
-      current = d;
-    } else if (current === '-0') {
-      current = '-' + d;
-    } else if (current.replace(/[^0-9]/g, '').length < 12) {
-      current += d;
-    }
-    render();
-  }
-
-  function inputDot() {
-    if (error) clearAll();
-
-    if (waitingForOperand || justEvaluated || /[eE]/.test(current)) {
-      current = '0.';
-      waitingForOperand = false;
-      justEvaluated = false;
-      historyText = '\u00a0';
-    } else if (!current.includes('.')) {
-      current += '.';
-    }
-    render();
-  }
-
-  function chooseOperator(op) {
-    if (error) return;
-
-    const value = parseFloat(current);
-
-    if (operator !== null && !waitingForOperand) {
-      const result = OPS[operator](previous, value);
-      if (!isFinite(result)) { setError(); return; }
-      previous = result;
-      current = String(result);
-    } else {
-      previous = value;
-    }
-
-    operator = op;
-    waitingForOperand = true;
-    justEvaluated = false;
-    render();
-  }
-
-  function equals() {
-    if (error || operator === null || previous === null) return;
-
-    const value = parseFloat(current);
-    const result = OPS[operator](previous, value);
-    const expression = formatNumber(previous) + ' ' + SYMBOL[operator] + ' ' + formatNumber(value) + ' =';
-
-    if (!isFinite(result) || isNaN(result)) {
-      historyText = expression;
-      setError();
-      return;
-    }
-
-    historyText = expression;
-    current = String(result);
-    previous = null;
-    operator = null;
-    waitingForOperand = false;
-    justEvaluated = true;
-    error = false;
-
-    render();
-    displayEl.classList.add('flash');
-    setTimeout(function () { displayEl.classList.remove('flash'); }, 220);
-  }
-
-  function backspace() {
-    if (error) { clearAll(); return; }
-
-    if (waitingForOperand || justEvaluated) {
-      justEvaluated = false;
-      waitingForOperand = false;
-      current = '0';
-      historyText = '\u00a0';
-      render();
-      return;
-    }
-
-    current = current.slice(0, -1);
-    if (current === '' || current === '-' || current === '-0') current = '0';
-    render();
-  }
-
-  function toggleSign() {
-    if (error) return;
-    if (current.charAt(0) === '-') {
-      current = current.slice(1);
-    } else if (parseFloat(current) !== 0) {
-      current = '-' + current;
-    }
-    render();
-  }
-
-  function percent() {
-    if (error) return;
-    const n = parseFloat(current);
-    if (isNaN(n)) return;
-    current = String(n / 100);
-    render();
-  }
-
-  /* =========================================================
-     ACCIONES CIENTÍFICAS
-     ========================================================= */
-  function applyUnary(name) {
-    if (error) return;
-
-    const value = parseFloat(current);
-    let result;
-
-    switch (name) {
-      case 'sin':    result = cleanNum(Math.sin(toRad(value))); break;
-      case 'cos':    result = cleanNum(Math.cos(toRad(value))); break;
-      case 'tan': {
-        const r = toRad(value);
-        result = Math.abs(Math.cos(r)) < 1e-12 ? NaN : cleanNum(Math.tan(r));
-        break;
-      }
-      case 'sqrt':   result = value < 0 ? NaN : cleanNum(Math.sqrt(value)); break;
-      case 'square': result = cleanNum(value * value); break;
-      case 'log':    result = value <= 0 ? NaN : cleanNum(Math.log10(value)); break;
-      case 'ln':     result = value <= 0 ? NaN : cleanNum(Math.log(value)); break;
-      case 'inv':    result = value === 0 ? NaN : cleanNum(1 / value); break;
-      default:       return;
-    }
-
-    const hist = unaryHistory(name, value);
-
-    if (isNaN(result)) {
-      historyText = hist;
-      setError();
-      beep(180, 0.14, 'sawtooth', 0.05);
-      return;
-    }
-
-    historyText = hist;
-    current = String(result);
-    waitingForOperand = true;
-    justEvaluated = false;
-    error = false;
-
-    render();
-    displayEl.classList.add('flash');
-    setTimeout(function () { displayEl.classList.remove('flash'); }, 220);
-    beep(760, 0.06);
-  }
-
-  function inputConstant(value) {
-    if (error) clearAll();
-    current = String(value);
-    waitingForOperand = true;
-    justEvaluated = false;
-    historyText = '\u00a0';
-    render();
-  }
-
-  function toggleAngle() {
-    angleMode = angleMode === 'DEG' ? 'RAD' : 'DEG';
-    angleBtn.textContent = angleMode;
-    angleBtn.classList.toggle('alt', angleMode === 'RAD');
-    updateGraphHint();
-    if (graphModal.classList.contains('is-open')) drawGraph();
-    beep(700, 0.05);
-  }
-
-  /* =========================================================
-     TOGGLE DEL PANEL CIENTÍFICO
-     ========================================================= */
-  sciToggle.addEventListener('click', function () {
-    const open = calcEl.classList.toggle('sci-open');
-    sciToggle.classList.toggle('is-on', open);
-    sciToggle.setAttribute('aria-pressed', String(open));
-    beep(open ? 620 : 420, 0.07);
-  });
-
-  /* =========================================================
-     EJECUTAR ACCIÓN
-     ========================================================= */
-  function activate(btn) {
-    const action = btn.dataset.action;
-    const value  = btn.dataset.value;
-
-    switch (action) {
-      case 'digit':   inputDigit(value);     beep(660, 0.05); break;
-      case 'dot':     inputDot();            beep(660, 0.05); break;
-      case 'op':      chooseOperator(value); beep(480, 0.06); break;
-      case 'equals':
-        equals();
-        beep(880, 0.09);
-        setTimeout(function () { beep(1180, 0.08); }, 70);
-        break;
-      case 'clear':   clearAll();   beep(190, 0.12, 'sawtooth', 0.05); break;
-      case 'back':    backspace();  beep(320, 0.06); break;
-      case 'sign':    toggleSign(); beep(520, 0.05); break;
-      case 'percent': percent();    beep(520, 0.05); break;
-      case 'sci':     applyUnary(value); break;
-      case 'const':   inputConstant(value === 'pi' ? Math.PI : Math.E); beep(700, 0.05); break;
-      case 'angle':   toggleAngle(); break;
-    }
-  }
-
-  /* =========================================================
-     EVENTOS CALCULADORA
-     ========================================================= */
-  calcEl.addEventListener('click', function (e) {
-    const btn = e.target.closest('.key');
-    if (!btn) return;
-    activate(btn);
-  });
-
-  function pressBySelector(selector) {
-    const btn = document.querySelector(selector);
-    if (!btn) return;
-    btn.classList.add('is-pressed');
-    setTimeout(function () { btn.classList.remove('is-pressed'); }, 100);
-    activate(btn);
-  }
-
-  window.addEventListener('keydown', function (e) {
-    // Si el modal está abierto, gestionar solo Escape y dejar el input
-    if (graphModal.classList.contains('is-open')) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeGraph();
-      }
-      return;
-    }
-
-    const k = e.key;
-    let sel = null;
-
-    if (/^[0-9]$/.test(k))                          sel = '[data-action="digit"][data-value="' + k + '"]';
-    else if (k === '.' || k === ',')                sel = '[data-action="dot"]';
-    else if (k === '+')                             sel = '[data-action="op"][data-value="+"]';
-    else if (k === '-')                             sel = '[data-action="op"][data-value="-"]';
-    else if (k === '*' || k === 'x' || k === 'X')   sel = '[data-action="op"][data-value="*"]';
-    else if (k === '/')                             sel = '[data-action="op"][data-value="/"]';
-    else if (k === '^')                             sel = '[data-action="op"][data-value="^"]';
-    else if (k === 'Enter' || k === '=')            sel = '[data-action="equals"]';
-    else if (k === 'Backspace')                     sel = '[data-action="back"]';
-    else if (k === 'Escape' || k === 'Delete')      sel = '[data-action="clear"]';
-    else if (k === '%')                             sel = '[data-action="percent"]';
-
-    if (sel) {
-      e.preventDefault();
-      pressBySelector(sel);
-    }
-  });
-
-  /* =========================================================
-     ================  GRAFICADORA  ===========================
-     ========================================================= */
-
-  /* ---------- Estado del gráfico ---------- */
-  let graphAST = null;
-  let graphViewRange = 10;   // rango vertical [-N, N]
-
-  /* ---------- Funciones disponibles ---------- */
-  const GRAPH_FUNCS = {
-    sin: function (x) { return angleMode === 'DEG' ? Math.sin(x * Math.PI / 180) : Math.sin(x); },
-    cos: function (x) { return angleMode === 'DEG' ? Math.cos(x * Math.PI / 180) : Math.cos(x); },
-    tan: function (x) {
-      const r = angleMode === 'DEG' ? x * Math.PI / 180 : x;
-      return Math.abs(Math.cos(r)) < 1e-12 ? NaN : Math.tan(r);
-    },
-    asin: Math.asin,
-    acos: Math.acos,
-    atan: Math.atan,
-    sqrt: function (x) { return x < 0 ? NaN : Math.sqrt(x); },
-    log:  function (x) { return x <= 0 ? NaN : Math.log10(x); },
-    ln:   function (x) { return x <= 0 ? NaN : Math.log(x); },
-    abs:  Math.abs,
-    exp:  Math.exp,
-    floor: Math.floor,
-    ceil:  Math.ceil
-  };
-
-  /* ---------- Tokenizador ---------- */
-  function tokenizeGraph(str) {
-    // Normalizar símbolos y unicode
-    str = str
-      .replace(/π/g, 'pi')
-      .replace(/√/g, 'sqrt')
-      .replace(/×/g, '*')
-      .replace(/÷/g, '/')
-      .replace(/−/g, '-')
-      .replace(/²/g, '^2')
-      .replace(/\s+/g, '')
-      .toLowerCase();
-
-    const tokens = [];
-    let i = 0;
-
-    while (i < str.length) {
-      const c = str[i];
-
-      if (/[0-9.]/.test(c)) {
-        let num = '';
-        let dots = 0;
-        while (i < str.length && /[0-9.]/.test(str[i])) {
-          if (str[i] === '.') dots++;
-          num += str[i];
-          i++;
-        }
-        if (dots > 1) throw new Error('Número inválido: ' + num);
-        tokens.push({ type: 'num', value: parseFloat(num) });
-      } else if (/[a-z]/.test(c)) {
-        let id = '';
-        while (i < str.length && /[a-z]/.test(str[i])) {
-          id += str[i];
-          i++;
-        }
-        tokens.push({ type: 'id', value: id });
-      } else if ('+-*/^()'.indexOf(c) !== -1) {
-        tokens.push({ type: 'op', value: c });
-        i++;
-      } else {
-        throw new Error('Carácter inválido: ' + c);
-      }
-    }
-    return tokens;
-  }
-
-  /* ---------- Parser recursivo descendente ----------
-     Gramática:
-       expr    := term (('+'|'-') term)*
-       term    := unary (('*'|'/') unary | implicit)*
-       unary   := ('-'|'+') unary | factor
-       factor  := primary ('^' factor)?
-       primary := num | var | const | '(' expr ')' | func '(' expr ')'
-  --------------------------------------------------- */
-  function parseExpression(str) {
-    const tokens = tokenizeGraph(str);
-    let pos = 0;
-
-    function peek() { return tokens[pos]; }
-    function consume() { return tokens[pos++]; }
-    function expect(v) {
-      const t = consume();
-      if (!t || t.value !== v) throw new Error('Se esperaba "' + v + '"');
-      return t;
-    }
-
-    function parseExpr() {
-      let node = parseTerm();
-      while (peek() && (peek().value === '+' || peek().value === '-')) {
-        const op = consume().value;
-        const right = parseTerm();
-        node = { type: 'bin', op: op, left: node, right: right };
-      }
-      return node;
-    }
-
-    function parseTerm() {
-      let node = parseUnary();
-      while (true) {
-        const t = peek();
-        if (!t) break;
-        if (t.value === '*' || t.value === '/') {
-          const op = consume().value;
-          const right = parseUnary();
-          node = { type: 'bin', op: op, left: node, right: right };
-        } else if (t.type === 'num' || t.type === 'id' || t.value === '(') {
-          // Multiplicación implícita: 2x, 3(x+1), (x+1)(x-1)…
-          const right = parseUnary();
-          node = { type: 'bin', op: '*', left: node, right: right };
-        } else {
-          break;
-        }
-      }
-      return node;
-    }
-
-    function parseUnary() {
-      const t = peek();
-      if (t && (t.value === '-' || t.value === '+')) {
-        const op = consume().value;
-        const operand = parseUnary();
-        return { type: 'unary', op: op, operand: operand };
-      }
-      return parseFactor();
-    }
-
-    function parseFactor() {
-      let node = parsePrimary();
-      if (peek() && peek().value === '^') {
-        consume();
-        const right = parseFactor(); // asociativo a la derecha
-        node = { type: 'bin', op: '^', left: node, right: right };
-      }
-      return node;
-    }
-
-    function parsePrimary() {
-      const t = peek();
-      if (!t) throw new Error('Expresión incompleta');
-
-      if (t.type === 'num') {
-        consume();
-        return { type: 'num', value: t.value };
-      }
-
-      if (t.type === 'id') {
-        consume();
-        const name = t.value;
-
-        if (name === 'x')  return { type: 'var', name: 'x' };
-        if (name === 'pi') return { type: 'num', value: Math.PI };
-        if (name === 'e')  return { type: 'num', value: Math.E };
-
-        if (GRAPH_FUNCS[name]) {
-          if (peek() && peek().value === '(') {
-            consume();
-            const arg = parseExpr();
-            expect(')');
-            return { type: 'call', name: name, arg: arg };
-          }
-          throw new Error('La función "' + name + '" necesita paréntesis, ej: ' + name + '(x)');
-        }
-
-        throw new Error('Identificador desconocido: ' + name);
-      }
-
-      if (t.value === '(') {
-        consume();
-        const node = parseExpr();
-        expect(')');
-        return node;
-      }
-
-      throw new Error('Token inesperado: "' + t.value + '"');
-    }
-
-    const ast = parseExpr();
-    if (pos < tokens.length) {
-      throw new Error('Sobra algo al final de la expresión');
-    }
-    return ast;
-  }
-
-  /* ---------- Evaluador del AST ---------- */
-  function evaluateGraph(node, x) {
-    switch (node.type) {
-      case 'num':
-        return node.value;
-
-      case 'var':
-        return x;
-
-      case 'unary':
-        return node.op === '-' ? -evaluateGraph(node.operand, x) : evaluateGraph(node.operand, x);
-
-      case 'bin': {
-        const l = evaluateGraph(node.left, x);
-        const r = evaluateGraph(node.right, x);
-        switch (node.op) {
-          case '+': return l + r;
-          case '-': return l - r;
-          case '*': return l * r;
-          case '/': return l / r;
-          case '^': return Math.pow(l, r);
-        }
-        return NaN;
-      }
-
-      case 'call': {
-        const v = evaluateGraph(node.arg, x);
-        const fn = GRAPH_FUNCS[node.name];
-        return fn ? fn(v) : NaN;
-      }
-    }
-    return NaN;
-  }
-
-  /* ---------- Dibujo del gráfico ---------- */
-  function drawGraph() {
-    const rect = graphCanvas.getBoundingClientRect();
-    if (rect.width < 10 || rect.height < 10) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    graphCanvas.width  = Math.round(rect.width  * dpr);
-    graphCanvas.height = Math.round(rect.height * dpr);
-
-    const ctx = graphCanvas.getContext('2d');
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
-
-    const W = rect.width;
-    const H = rect.height;
-
-    /* Fondo */
-    ctx.fillStyle = '#081a0a';
-    ctx.fillRect(0, 0, W, H);
-
-    /* Rangos con unidades iguales en X e Y */
-    const aspect = W / H;
-    const yMin = -graphViewRange;
-    const yMax =  graphViewRange;
-    const xMin = -graphViewRange * aspect;
-    const xMax =  graphViewRange * aspect;
-
-    const xToPx = function (x) { return (x - xMin) / (xMax - xMin) * W; };
-    const yToPx = function (y) { return H - (y - yMin) / (yMax - yMin) * H; };
-
-    /* Paso de rejilla adaptativo */
-    let step = 1;
-    if (graphViewRange > 20)   step = 5;
-    if (graphViewRange > 100)  step = 20;
-    if (graphViewRange < 2)    step = 0.5;
-    if (graphViewRange < 0.5)  step = 0.1;
-
-    /* Rejilla */
-    ctx.strokeStyle = 'rgba(124,252,0,0.10)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    const startX = Math.ceil(xMin / step) * step;
-    for (let x = startX; x <= xMax; x += step) {
-      const px = xToPx(x);
-      ctx.moveTo(px, 0);
-      ctx.lineTo(px, H);
-    }
-    const startY = Math.ceil(yMin / step) * step;
-    for (let y = startY; y <= yMax; y += step) {
-      const py = yToPx(y);
-      ctx.moveTo(0, py);
-      ctx.lineTo(W, py);
-    }
-    ctx.stroke();
-
-    /* Ejes */
-    ctx.strokeStyle = 'rgba(124,252,0,0.45)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(xToPx(0), 0);
-    ctx.lineTo(xToPx(0), H);
-    ctx.moveTo(0, yToPx(0));
-    ctx.lineTo(W, yToPx(0));
-    ctx.stroke();
-
-    /* Curva de la función */
-    if (!graphAST) return;
-
-    ctx.strokeStyle = '#7cfc00';
-    ctx.lineWidth = 2.2;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.shadowColor = 'rgba(124,252,0,0.85)';
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-
-    let prevPy = null;
-    const limitUp   = -H * 2;
-    const limitDown =  H * 3;
-
-    for (let px = 0; px <= W; px++) {
-      const x = xMin + (px / W) * (xMax - xMin);
-      let y;
-      try { y = evaluateGraph(graphAST, x); } catch (e) { y = NaN; }
-
-      if (typeof y !== 'number' || !isFinite(y) || isNaN(y)) {
-        prevPy = null;
-        continue;
-      }
-
-      let py = yToPx(y);
-      if (py < limitUp)   py = limitUp;
-      else if (py > limitDown) py = limitDown;
-
-      if (prevPy === null) {
-        ctx.moveTo(px, py);
-      } else if (Math.abs(py - prevPy) > H * 1.5) {
-        // Discontinuidad (asíntota, salto…)
-        ctx.moveTo(px, py);
-      } else {
-        ctx.lineTo(px, py);
-      }
-      prevPy = py;
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-  }
-
-  /* ---------- Mensajes de error / pista ---------- */
-  function showGraphError(msg) {
-    graphError.textContent = msg || '';
-  }
-
-  function updateGraphHint() {
-    graphHint.textContent =
-      'x  ·  + − × ÷ ^  ·  sin cos tan sqrt log ln abs  ·  π e  ·  ángulo: ' + angleMode;
-  }
-
-  /* ---------- Plot desde el input ---------- */
-  function plotFromInput() {
-    const expr = graphInput.value.trim();
-    if (!expr) {
-      showGraphError('Escribe una función');
-      beep(180, 0.12, 'sawtooth', 0.05);
-      return;
-    }
-
-    try {
-      graphAST = parseExpression(expr);
-      showGraphError('');
-      drawGraph();
-      graphCanvas.classList.add('flash');
-      setTimeout(function () { graphCanvas.classList.remove('flash'); }, 300);
-      beep(880, 0.08);
-      setTimeout(function () { beep(1180, 0.07); }, 70);
-    } catch (err) {
-      showGraphError(err.message || 'Expresión no válida');
-      beep(180, 0.14, 'sawtooth', 0.05);
-      graphCanvas.classList.add('flash');
-      setTimeout(function () { graphCanvas.classList.remove('flash'); }, 300);
-    }
-  }
-
-  /* ---------- Abrir / cerrar modal ---------- */
-  function openGraph() {
-    graphModal.classList.add('is-open');
-    graphModal.setAttribute('aria-hidden', 'false');
-    graphToggle.classList.add('is-on');
-    updateGraphHint();
-    // Asegurar que el canvas ya tiene tamaño antes de dibujar
-    requestAnimationFrame(function () {
-      plotFromInput();
+    /* torso */
+    var body = box(1.95, 1.75, 1.1, SHIRT);
+    body.position.set(0, -0.9, 0);
+    g.add(body);
+
+    /* detalle del cuello */
+    var collar = box(0.7, 0.16, 1.14, 0xffffff, { roughness: 0.9 });
+    collar.position.set(0, -0.05, 0);
+    g.add(collar);
+
+    /* ---- cabeza (pivote en el cuello) ---- */
+    var head = new THREE.Group();
+    head.position.set(0, 0.05, 0);
+
+    var headCube = box(1.6, 1.6, 1.6, SKIN);
+    headCube.position.set(0, 0.8, 0);
+    head.add(headCube);
+
+    /* ojos */
+    [-0.34, 0.34].forEach(function(x){
+      var eye = box(0.24, 0.3, 0.08, DARK, { roughness: 0.4 });
+      eye.position.set(x, 0.92, 0.81);
+      head.add(eye);
     });
-    beep(620, 0.08);
-  }
 
-  function closeGraph() {
-    graphModal.classList.remove('is-open');
-    graphModal.setAttribute('aria-hidden', 'true');
-    graphToggle.classList.remove('is-on');
-    beep(380, 0.07);
-  }
+    /* boca */
+    var mouth = box(0.42, 0.12, 0.08, 0x8d4a3a, { roughness: 0.6 });
+    mouth.position.set(0, 0.42, 0.81);
+    head.add(mouth);
 
-  /* ---------- Eventos del modal ---------- */
-  graphToggle.addEventListener('click', function () {
-    if (graphModal.classList.contains('is-open')) closeGraph();
-    else openGraph();
-  });
+    /* gorra roja */
+    var capTop = box(1.74, 0.44, 1.74, CAPC, { roughness: 0.75 });
+    capTop.position.set(0, 1.62, 0);
+    head.add(capTop);
 
-  graphClose.addEventListener('click', closeGraph);
+    var brim = box(1.74, 0.16, 0.92, CAPC, { roughness: 0.75 });
+    brim.position.set(0, 1.47, 0.96);
+    head.add(brim);
 
-  graphPlot.addEventListener('click', plotFromInput);
+    var button = box(0.22, 0.16, 0.22, 0xd42a2a);
+    button.position.set(0, 1.88, 0);
+    head.add(button);
 
-  graphInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      plotFromInput();
+    g.add(head);
+
+    /* ---- brazos (pivote en el hombro) ---- */
+    function makeArm(side){
+      var arm = new THREE.Group();
+      arm.position.set(side * 1.27, -0.3, 0);
+
+      var sleeve = box(0.52, 1.5, 0.58, SHIRT);
+      sleeve.position.set(0, -0.75, 0);
+      arm.add(sleeve);
+
+      var hand = box(0.58, 0.42, 0.62, SKIN);
+      hand.position.set(0, -1.56, 0);
+      arm.add(hand);
+
+      g.add(arm);
+      return arm;
     }
-  });
+    var armL = makeArm(-1);
+    var armR = makeArm(1);
 
-  graphZoomIn.addEventListener('click', function () {
-    graphViewRange = Math.max(0.5, graphViewRange / 2);
-    drawGraph();
-    beep(760, 0.05);
-  });
+    return { group: g, head: head, armL: armL, armR: armR };
+  }
 
-  graphZoomOut.addEventListener('click', function () {
-    graphViewRange = Math.min(2000, graphViewRange * 2);
-    drawGraph();
-    beep(520, 0.05);
-  });
+  /* ============================================================
+     7. CLAUDE: CUBO NARANJA
+     ============================================================ */
+  function createClaude(){
+    var g = new THREE.Group();
 
-  graphReset.addEventListener('click', function () {
-    graphViewRange = 10;
-    drawGraph();
-    beep(660, 0.06);
-  });
+    var bodyMat = new THREE.MeshStandardMaterial({
+      color: 0xd97757, roughness: 0.62, metalness: 0.06,
+      emissive: 0x521c08, emissiveIntensity: 0.55
+    });
+    var body = new THREE.Mesh(new THREE.BoxGeometry(2.9, 2.9, 2.9), bodyMat);
+    g.add(body);
 
-  // Cerrar al hacer clic en el fondo del modal
-  graphModal.addEventListener('click', function (e) {
-    if (e.target === graphModal) closeGraph();
-  });
+    /* ojos (grupo con pivote a la altura de los ojos -> parpadeo limpio) */
+    var eyeGroup = new THREE.Group();
+    eyeGroup.position.set(0, 0.48, 0);
 
-  /* ---------- Redibujar al cambiar tamaño ---------- */
-  let resizeTimer = null;
-  window.addEventListener('resize', function () {
-    if (!graphModal.classList.contains('is-open')) return;
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(drawGraph, 120);
-  });
+    var eyeWhiteMat = new THREE.MeshStandardMaterial({
+      color: 0xfff6ee, roughness: 0.35, emissive: 0xffffff, emissiveIntensity: 0.3
+    });
+    var pupilMat = new THREE.MeshStandardMaterial({ color: 0x241018, roughness: 0.5 });
 
-  /* =========================================================
-     ARRANQUE
-     ========================================================= */
-  updateGraphHint();
-  render();
+    var pupils = [];
+    [-0.62, 0.62].forEach(function(x){
+      var w = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.62, 0.12), eyeWhiteMat);
+      w.position.set(x, 0, 1.46);
+      eyeGroup.add(w);
+
+      var p = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.34, 0.1), pupilMat);
+      p.position.set(x - 0.06, 0, 1.52);
+      eyeGroup.add(p);
+      pupils.push({ mesh: p, baseX: x - 0.06 });
+    });
+    g.add(eyeGroup);
+
+    /* boca */
+    var mouth = new THREE.Mesh(
+      new THREE.BoxGeometry(0.78, 0.16, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0x8a3a1e, roughness: 0.6 })
+    );
+    mouth.position.set(0, -0.56, 1.46);
+    g.add(mouth);
+
+    /* brillo naranja */
+    var light = new THREE.PointLight(0xff9a6a, 1.1, 22);
+    light.position.set(0, 0, 2.2);
+    g.add(light);
+
+    return { group: g, eyes: eyeGroup, pupils: pupils, body: body };
+  }
+
+  /* ============================================================
+     8. PARTÍCULAS
+     ============================================================ */
+  var particles = [];
+  (function buildParticles(){
+    var mats = [
+      new THREE.MeshStandardMaterial({ color: 0xa48bff, emissive: 0x7b5cff, emissiveIntensity: 1.4, roughness: 0.6 }),
+      new THREE.MeshStandardMaterial({ color: 0x8ecbff, emissive: 0x4f9dff, emissiveIntensity: 1.2, roughness: 0.6 }),
+      new THREE.MeshStandardMaterial({ color: 0xffb38a, emissive: 0xff7a45, emissiveIntensity: 1.1, roughness: 0.6 })
+    ];
+    for (var i = 0; i < 70; i++){
+      var s = 0.08 + Math.random() * 0.18;
+      var m = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), mats[i % 3]);
+      m.position.set(
+        (Math.random() - 0.5) * 24,
+        (Math.random() - 0.5) * 16,
+        -14 + Math.random() * 22
+      );
+      m.userData = {
+        baseY: m.position.y,
+        sp: 0.2 + Math.random() * 0.5,
+        ph: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 1.4
+      };
+      scene.add(m);
+      particles.push(m);
+    }
+  })();
+
+  /* ============================================================
+     9. INSTANCIAS DE PERSONAJES
+     ============================================================ */
+  var boy = createBoy();
+  boy.group.position.set(-2.45, -0.6, 0);
+  scene.add(boy.group);
+
+  var claude = createClaude();
+  claude.group.position.set(2.55, -1.5, 0.4);
+  scene.add(claude.group);
+
+  /* ============================================================
+     10. ESTADO DE ANIMACIÓN
+     ============================================================ */
+  var bs = { armLz: -0.08, armRz: 0.08, armLx: 0, armRx: 0, headX: 0, headY: 0, headZ: 0 };
+  var cs = { rotY: 0, rotX: 0, rotZ: 0, posY: -1.5, sq: 1, pupil: -0.06 };
+
+  function damp(cur, target, lambda, dt){
+    return cur + (target - cur) * (1 - Math.exp(-lambda * dt));
+  }
+
+  /* ---------- CHICO ---------- */
+  function updateBoy(t, dt){
+    var tArmLz = -0.10, tArmRz = 0.10;
+    var tArmLx = 0, tArmRx = 0;
+    var tHeadX = 0, tHeadY = 0, tHeadZ = 0;
+    var bob = Math.sin(t * 2.3) * 0.09;
+    var hop = 0;
+    var lean = 0;
+
+    if (t >= 2.2 && t < 9.4){
+      /* hablando y señalando a Claude */
+      tArmRz = 1.30 + Math.sin(t * 7.0) * 0.13;
+      tArmRx = -0.45;
+      tArmLz = -0.18 + Math.sin(t * 7.0 + 2.0) * 0.10;
+      tHeadY = 0.34 + Math.sin(t * 3.2) * 0.06;
+      tHeadZ = -0.10;
+      bob = Math.sin(t * 6.0) * 0.10;
+      lean = 0.07;
+    } else if (t >= 9.4 && t < 17.4){
+      /* escuchando */
+      tHeadY = 0.30 + Math.sin(t * 1.6) * 0.05;
+      tHeadZ = -0.12;
+      tHeadX = 0.06;
+      bob = Math.sin(t * 1.8) * 0.07;
+    } else if (t >= 17.4 && t < 25.2){
+      /* ¡entendió! asiente y salta */
+      tHeadX = Math.sin(t * 9.0) * 0.28;
+      tHeadY = 0.10;
+      tArmLz = -0.55; tArmRz = 0.55;
+      tArmLx = -0.28; tArmRx = -0.28;
+      hop = Math.abs(Math.sin(t * 4.0)) * 0.24;
+    } else if (t >= 25.2){
+      /* despedida saludando */
+      tArmRz = 2.45 + Math.sin(t * 8.0) * 0.35;
+      tArmLz = -0.20;
+      tHeadY = Math.sin(t * 1.2) * 0.12;
+      bob = Math.sin(t * 2.6) * 0.10;
+    }
+
+    var k = 1 - Math.exp(-9 * dt);
+    bs.armLz += (tArmLz - bs.armLz) * k;
+    bs.armRz += (tArmRz - bs.armRz) * k;
+    bs.armLx += (tArmLx - bs.armLx) * k;
+    bs.armRx += (tArmRx - bs.armRx) * k;
+    bs.headX += (tHeadX - bs.headX) * k;
+    bs.headY += (tHeadY - bs.headY) * k;
+    bs.headZ += (tHeadZ - bs.headZ) * k;
+
+    boy.armL.rotation.z = bs.armLz;
+    boy.armL.rotation.x = bs.armLx;
+    boy.armR.rotation.z = bs.armRz;
+    boy.armR.rotation.x = bs.armRx;
+
+    boy.head.rotation.x = bs.headX;
+    boy.head.rotation.y = bs.headY;
+    boy.head.rotation.z = bs.headZ;
+
+    boy.group.position.y = -0.6 + bob + hop;
+    boy.group.rotation.y = lean;
+  }
+
+  /* ---------- CLAUDE ---------- */
+  function updateClaude(t, dt){
+    var tRotY = Math.sin(t * 1.1) * 0.22;
+    var tRotX = Math.sin(t * 1.4) * 0.10;
+    var tRotZ = Math.sin(t * 0.9) * 0.08;
+    var tPosY = -1.5 + Math.sin(t * 1.9) * 0.22;
+    var tSq = 1;
+    var tPupil = -0.08;
+
+    if (t >= 2.2 && t < 9.4){
+      /* escuchando al chico */
+      tRotY = 0.32 + Math.sin(t * 1.6) * 0.12;
+      tRotZ = Math.sin(t * 1.2) * 0.10;
+      tPupil = -0.13;
+    } else if (t >= 9.4 && t < 17.4){
+      /* habla (susurra): rebote suave y squash */
+      tRotY = Math.sin(t * 4.2) * 0.30;
+      tRotZ = Math.sin(t * 3.4) * 0.12;
+      tRotX = Math.sin(t * 3.0) * 0.14;
+      tPosY = -1.4 + Math.abs(Math.sin(t * 3.0)) * 0.30;
+      tSq = 1 + Math.sin(t * 6.0) * 0.05;
+      tPupil = -0.04;
+    } else if (t >= 17.4 && t < 25.2){
+      /* contento: brinca */
+      tRotY = Math.sin(t * 5.0) * 0.45;
+      tRotZ = Math.sin(t * 5.0 + 1) * 0.16;
+      tPosY = -1.3 + Math.abs(Math.sin(t * 3.4)) * 0.42;
+      tSq = 1 + Math.sin(t * 6.8) * 0.07;
+      tPupil = -0.10;
+    } else if (t >= 25.2){
+      tPosY = -1.45 + Math.sin(t * 2.0) * 0.20;
+      tRotY = Math.sin(t * 1.3) * 0.3;
+    }
+
+    var k = 1 - Math.exp(-8 * dt);
+    cs.rotY += (tRotY - cs.rotY) * k;
+    cs.rotX += (tRotX - cs.rotX) * k;
+    cs.rotZ += (tRotZ - cs.rotZ) * k;
+    cs.posY += (tPosY - cs.posY) * k;
+    cs.sq   += (tSq - cs.sq) * k;
+    cs.pupil += (tPupil - cs.pupil) * k;
+
+    claude.group.rotation.set(cs.rotX, cs.rotY, cs.rotZ);
+    claude.group.position.y = cs.posY;
+    claude.group.scale.set(1 / Math.sqrt(cs.sq), cs.sq, 1 / Math.sqrt(cs.sq));
+
+    /* parpadeo */
+    var b = t % 3.6;
+    var blink = (b < 0.12) ? 0.12 : 1;
+    claude.eyes.scale.y = blink;
+
+    /* pupilas mirando al chico */
+    for (var i = 0; i < claude.pupils.length; i++){
+      claude.pupils[i].mesh.position.x = claude.pupils[i].baseX + cs.pupil;
+    }
+
+    /* luz naranja que respira */
+    orangeGlow.intensity = 1.4 + Math.sin(t * 3.0) * 0.5;
+    orangeGlow.position.x = claude.group.position.x;
+    orangeGlow.position.y = claude.group.position.y;
+  }
+
+  /* ---------- CÁMARA ---------- */
+  function updateCamera(t){
+    camera.position.x = Math.sin(t * 0.18) * 0.8;
+    camera.position.y = 2 + Math.sin(t * 0.23) * 0.35;
+    camera.lookAt(0, -0.8, 0);
+  }
+
+  /* ---------- PARTÍCULAS + TECLAS ---------- */
+  function updateParticles(t){
+    for (var i = 0; i < particles.length; i++){
+      var p = particles[i];
+      var u = p.userData;
+      p.position.y = u.baseY + Math.sin(t * u.sp + u.ph) * 1.2;
+      p.rotation.x += 0.010 * u.spin;
+      p.rotation.y += 0.013 * u.spin;
+    }
+    for (var j = 0; j < glowMats.length; j++){
+      glowMats[j].emissiveIntensity = 0.9 + Math.sin(t * 2.0 + j * 1.7) * 0.8;
+    }
+  }
+
+  /* ---------- BOCADILLOS ---------- */
+  var b1 = document.getElementById('b1');
+  var b2 = document.getElementById('b2');
+  var b3 = document.getElementById('b3');
+
+  function updateBubbles(t){
+    b1.classList.toggle('show', t >= 2.3 && t < 9.4);
+    b2.classList.toggle('show', t >= 9.9 && t < 17.3);
+    b3.classList.toggle('show', t >= 17.8 && t < 25.0);
+  }
+
+  /* ============================================================
+     11. BUCLE PRINCIPAL
+     ============================================================ */
+  var DURATION = 30;
+  var clock = new THREE.Clock();
+  var lastElapsed = 0;
+
+  function animate(){
+    requestAnimationFrame(animate);
+
+    var elapsed = clock.getElapsedTime();
+    var dt = elapsed - lastElapsed;
+    lastElapsed = elapsed;
+    if (dt > 0.1) dt = 0.1;
+    if (dt < 0) dt = 0;
+
+    var t = elapsed % DURATION;
+
+    updateBoy(t, dt);
+    updateClaude(t, dt);
+    updateCamera(t);
+    updateParticles(t);
+    updateBubbles(t);
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
 })();
 </script>
-
 </body>
 </html>
