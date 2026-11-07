@@ -3,128 +3,119 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>¿Por qué Claude susurra?</title>
+<title>Voxelvania · La Cripta</title>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{
     margin:0;padding:0;width:100%;height:100%;
     background:#05030c;overflow:hidden;
-    font-family:"Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
+    user-select:none;-webkit-user-select:none;
   }
   #stage{
     position:absolute;top:50%;left:50%;
     width:1080px;height:1920px;
     transform:translate(-50%,-50%) scale(1);
     transform-origin:center center;
-    overflow:hidden;
-    background:#0a0620;
+    overflow:hidden;background:#05030c;
   }
-  #c{display:block;width:1080px;height:1920px;}
 
-  /* ---------- Bocadillos ---------- */
-  .bubble{
+  /* ============ ZONA DE JUEGO ============ */
+  #gameWrap{position:absolute;top:0;left:0;width:1080px;height:1180px;overflow:hidden;}
+  #c{display:block;width:1080px;height:1180px;}
+
+  /* HUD corazones */
+  #hud{
+    position:absolute;top:38px;left:44px;display:flex;gap:18px;
+    z-index:6;pointer-events:none;
+  }
+  .heart{
+    font-size:74px;line-height:1;color:#ff3355;
+    text-shadow:0 0 24px rgba(255,50,90,.75),0 4px 0 rgba(0,0,0,.5);
+    transition:transform .2s ease;
+  }
+  .heart.empty{color:#3a2a44;text-shadow:0 4px 0 rgba(0,0,0,.5);}
+  .heart.pop{transform:scale(1.35);}
+
+  /* Mensajes */
+  #msg{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;pointer-events:none;z-index:7;
+    font-size:120px;font-weight:900;line-height:1;letter-spacing:-4px;
+    color:#fff;opacity:0;transform:scale(.7);
+    transition:opacity .35s ease,transform .35s ease;
+    text-shadow:0 0 50px rgba(180,80,255,.9),0 12px 0 rgba(0,0,0,.5);
+  }
+  #msg.show{opacity:1;transform:scale(1);}
+  #msg.win{color:#ffe27a;text-shadow:0 0 60px rgba(255,200,60,.9),0 12px 0 rgba(0,0,0,.5);}
+
+  /* ============ CONTROLES ============ */
+  #controls{
+    position:absolute;top:1180px;left:0;width:1080px;height:740px;
+    background:
+      linear-gradient(180deg,rgba(10,4,24,.0) 0%,rgba(10,4,24,.55) 8%,rgba(10,4,24,.9) 30%,#0a0418 100%);
+    z-index:8;
+  }
+  .btn{
     position:absolute;
-    padding:34px 46px;
-    border-radius:52px;
-    font-size:62px;
-    font-weight:800;
-    line-height:1.12;
-    letter-spacing:-1px;
-    opacity:0;
-    transform:scale(.5) translateY(46px);
-    transition:opacity .26s ease, transform .5s cubic-bezier(.34,1.56,.64,1);
-    will-change:transform,opacity;
-    pointer-events:none;
-  }
-  .bubble.show{opacity:1;transform:scale(1) translateY(0);}
-
-  .b1,.b3{
-    --fill:#fff4e2;--line:#ff4d5e;
-    left:62px;max-width:640px;
-    background:var(--fill);color:#20113a;
-    border:9px solid var(--line);
-    box-shadow:0 28px 70px rgba(0,0,0,.6),0 0 70px rgba(255,77,94,.28);
-  }
-  .b1{top:236px;}
-  .b3{top:290px;max-width:600px;}
-
-  .b1::before,.b3::before{
-    content:"";position:absolute;left:88px;bottom:-72px;
-    width:42px;height:42px;border-radius:50%;
-    background:var(--fill);border:8px solid var(--line);
-  }
-  .b1::after,.b3::after{
-    content:"";position:absolute;left:64px;bottom:-116px;
-    width:26px;height:26px;border-radius:50%;
-    background:var(--fill);border:7px solid var(--line);
-  }
-
-  .b2{
-    --fill:#fff0e6;--line:#e07a4f;
-    right:62px;top:700px;max-width:680px;
-    background:var(--fill);color:#3d1608;
-    border:9px solid var(--line);
-    box-shadow:0 28px 70px rgba(0,0,0,.6),0 0 70px rgba(224,122,79,.32);
-  }
-  .b2::before{
-    content:"";position:absolute;right:88px;bottom:-72px;
-    width:42px;height:42px;border-radius:50%;
-    background:var(--fill);border:8px solid var(--line);
-  }
-  .b2::after{
-    content:"";position:absolute;right:64px;bottom:-116px;
-    width:26px;height:26px;border-radius:50%;
-    background:var(--fill);border:7px solid var(--line);
-  }
-
-  /* ---------- Overlays ---------- */
-  #vignette{
-    position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(ellipse at 50% 46%,rgba(0,0,0,0) 42%,rgba(0,0,0,.62) 100%);
-  }
-  #fade{
-    position:absolute;inset:0;background:#05030c;pointer-events:none;
-    animation:fadeOut 1.2s ease .15s forwards;
-  }
-  @keyframes fadeOut{to{opacity:0}}
-
-  /* ---------- Botón de silencio ---------- */
-  #mute{
-    position:absolute;top:54px;right:54px;z-index:15;
-    width:118px;height:118px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    font-size:56px;line-height:1;
-    background:rgba(255,255,255,.09);
-    border:4px solid rgba(255,255,255,.20);
-    color:#fff;cursor:pointer;user-select:none;
-    backdrop-filter:blur(6px);
-    transition:transform .18s ease, background .18s ease;
+    border-radius:50%;
+    color:#fff;font-weight:900;
+    background:rgba(120,70,200,.24);
+    border:6px solid rgba(180,140,255,.42);
+    box-shadow:0 10px 0 rgba(0,0,0,.35),0 0 40px rgba(120,70,255,.18) inset;
+    touch-action:none;
+    transition:transform .06s ease, background .06s ease, border-color .06s ease;
+    -webkit-user-select:none;user-select:none;
   }
-  #mute:active{transform:scale(.92);background:rgba(255,255,255,.18);}
+  .btn.active{
+    transform:scale(.93);
+    background:rgba(180,120,255,.55);
+    border-color:rgba(230,200,255,.9);
+  }
+  .btn svg{width:58%;height:58%;display:block;pointer-events:none;}
 
-  /* ---------- Pantalla de inicio (desbloquea el audio) ---------- */
+  #btnLeft {left:60px;  top:280px; width:250px;height:250px;font-size:120px;}
+  #btnRight{left:330px; top:280px; width:250px;height:250px;font-size:120px;}
+
+  #btnAttack{
+    left:680px;top:400px;width:230px;height:230px;
+    background:rgba(230,60,90,.26);border-color:rgba(255,120,150,.5);
+    font-size:100px;
+  }
+  #btnAttack.active{background:rgba(255,80,120,.6);border-color:rgba(255,200,220,.9);}
+
+  #btnJump{
+    left:840px;top:180px;width:230px;height:230px;
+    background:rgba(60,200,150,.26);border-color:rgba(120,255,200,.5);
+    font-size:100px;
+  }
+  #btnJump.active{background:rgba(80,220,170,.6);border-color:rgba(200,255,230,.9);}
+
+  /* ============ OVERLAY INICIO ============ */
   #startOverlay{
     position:absolute;inset:0;z-index:20;
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-    gap:56px;text-align:center;
-    background:radial-gradient(circle at 50% 44%,rgba(40,16,86,.86),rgba(5,3,12,.95));
-    backdrop-filter:blur(8px);
-    cursor:pointer;
-    transition:opacity .5s ease, visibility .5s;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:70px;text-align:center;cursor:pointer;
+    background:radial-gradient(circle at 50% 42%,rgba(50,18,100,.92),rgba(5,3,12,.97));
+    backdrop-filter:blur(10px);
+    transition:opacity .5s ease,visibility .5s;
   }
   #startOverlay.hide{opacity:0;visibility:hidden;pointer-events:none;}
-  #startOverlay .btn{
-    font-size:74px;font-weight:900;color:#fff;
-    padding:48px 88px;border-radius:90px;
-    letter-spacing:-1.5px;line-height:1.05;
-    background:linear-gradient(145deg,#ff5a6e,#b23bff);
-    box-shadow:0 34px 90px rgba(178,59,255,.5),
-               0 0 0 9px rgba(255,255,255,.09) inset;
-    animation:pulse 1.9s ease-in-out infinite;
+  #startOverlay .title{
+    font-size:110px;font-weight:900;letter-spacing:-4px;line-height:1;
+    color:#fff;text-shadow:0 0 70px rgba(180,80,255,.9),0 10px 0 rgba(0,0,0,.5);
   }
-  #startOverlay .hint{
-    font-size:40px;font-weight:700;color:#cbb8ff;letter-spacing:.5px;
+  #startOverlay .sub{
+    font-size:44px;font-weight:700;color:#cbb8ff;letter-spacing:1px;
+  }
+  #startOverlay .btnStart{
+    font-size:82px;font-weight:900;color:#fff;letter-spacing:-2px;
+    padding:52px 110px;border-radius:100px;
+    background:linear-gradient(145deg,#ff4d70,#b23bff);
+    box-shadow:0 36px 90px rgba(178,59,255,.55),
+               0 0 0 10px rgba(255,255,255,.09) inset;
+    animation:pulse 1.9s ease-in-out infinite;
   }
   @keyframes pulse{
     0%,100%{transform:scale(1);}
@@ -134,661 +125,1114 @@
 </head>
 <body>
 <div id="stage">
-  <canvas id="c"></canvas>
 
-  <div class="bubble b1" id="b1">¿Por qué Claude susurra?</div>
-  <div class="bubble b2" id="b2">Porque estoy pensando…</div>
-  <div class="bubble b3" id="b3">Ah, ya entendí</div>
+  <div id="gameWrap">
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div class="heart" id="h0">♥</div>
+      <div class="heart" id="h1">♥</div>
+      <div class="heart" id="h2">♥</div>
+    </div>
+    <div id="msg"></div>
+  </div>
 
-  <div id="vignette"></div>
-  <div id="fade"></div>
-
-  <div id="mute" title="Silenciar">🔊</div>
+  <div id="controls">
+    <div class="btn" id="btnLeft">◀</div>
+    <div class="btn" id="btnRight">▶</div>
+    <div class="btn" id="btnAttack">⚔</div>
+    <div class="btn" id="btnJump">↑</div>
+  </div>
 
   <div id="startOverlay">
-    <div class="btn">▶ TOCA<br>PARA EMPEZAR</div>
-    <div class="hint">Con voz · 30 segundos</div>
+    <div class="title">VOXELVANIA</div>
+    <div class="sub">La Cripta del Cubo</div>
+    <div class="btnStart">▶ JUGAR</div>
+    <div class="sub" style="font-size:32px;opacity:.7">Llega a la puerta del final</div>
   </div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
-  'use strict';
+'use strict';
 
-  /* ============================================================
-     1. AJUSTE DE ESCALA (1080x1920 -> pantalla del móvil)
-     ============================================================ */
-  var stage = document.getElementById('stage');
-  function fitStage(){
-    var s = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
-    stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+/* ============================================================
+   0. ESCALA ADAPTATIVA
+   ============================================================ */
+var stageEl = document.getElementById('stage');
+function fitStage(){
+  var s = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+  stageEl.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+}
+window.addEventListener('resize', fitStage);
+window.addEventListener('orientationchange', function(){ setTimeout(fitStage, 120); });
+fitStage();
+
+/* ============================================================
+   1. CONSTANTES DEL JUEGO
+   ============================================================ */
+var VIEW_W = 1080, VIEW_H = 1180;
+var CAM_HALF_W = 8;                                  // ancho visible (16u)
+var CAM_HALF_H = CAM_HALF_W * (VIEW_H / VIEW_W);     // ~8.74u
+var GRAVITY = 38;
+var MOVE_SPEED = 6.6;
+var JUMP_SPEED = 13.6;
+var ATTACK_DURATION = 0.42;
+var ATTACK_COOLDOWN = 0.50;
+var INVULN_TIME = 1.15;
+var LEVEL_END = 63;
+
+/* ============================================================
+   2. RENDERER / ESCENA / CÁMARA
+   ============================================================ */
+var canvas = document.getElementById('c');
+var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.5));
+renderer.setSize(VIEW_W, VIEW_H, false);
+if (renderer.outputEncoding !== undefined && THREE.sRGBEncoding !== undefined){
+  renderer.outputEncoding = THREE.sRGBEncoding;
+}
+
+var scene = new THREE.Scene();
+scene.background = gradientBG();
+
+var camera = new THREE.OrthographicCamera(
+  -CAM_HALF_W, CAM_HALF_W, CAM_HALF_H, -CAM_HALF_H, 0.1, 220
+);
+camera.position.set(5, 6, 100);
+camera.lookAt(5, 6, 0);
+
+function gradientBG(){
+  var cv = document.createElement('canvas');
+  cv.width = 8; cv.height = 512;
+  var ctx = cv.getContext('2d');
+  var g = ctx.createLinearGradient(0,0,0,512);
+  g.addColorStop(0.00,'#050118');
+  g.addColorStop(0.30,'#0b0a2e');
+  g.addColorStop(0.58,'#190a3c');
+  g.addColorStop(0.82,'#2a0b45');
+  g.addColorStop(1.00,'#12041f');
+  ctx.fillStyle = g; ctx.fillRect(0,0,8,512);
+  var t = new THREE.CanvasTexture(cv);
+  if (THREE.sRGBEncoding !== undefined) t.encoding = THREE.sRGBEncoding;
+  return t;
+}
+
+/* ============================================================
+   3. LUCES
+   ============================================================ */
+scene.add(new THREE.HemisphereLight(0x8a7bff, 0x120622, 1.05));
+var key = new THREE.DirectionalLight(0xffe6d0, 1.15);
+key.position.set(6, 14, 12); scene.add(key);
+var rim = new THREE.DirectionalLight(0x9a6bff, 0.55);
+rim.position.set(-10, 3, 6); scene.add(rim);
+var moonLight = new THREE.PointLight(0xbfc8ff, 0.9, 90);
+moonLight.position.set(10, 14, -6); scene.add(moonLight);
+
+/* ============================================================
+   4. HELPERS
+   ============================================================ */
+function mat(color, opts){
+  var p = { color:color, roughness:0.88, metalness:0.0, flatShading:true };
+  if (opts) for (var k in opts) p[k] = opts[k];
+  return new THREE.MeshStandardMaterial(p);
+}
+function box(w,h,d,color,opts){
+  var m = (color && color.isMaterial) ? color : mat(color, opts);
+  return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+}
+
+/* ============================================================
+   5. FONDO CON PARALLAX
+   ============================================================ */
+var parallaxFar = new THREE.Group();
+var parallaxMid = new THREE.Group();
+scene.add(parallaxFar);
+scene.add(parallaxMid);
+
+/* Luna */
+(function buildMoon(){
+  var m = new THREE.Mesh(
+    new THREE.CircleGeometry(2.6, 32),
+    new THREE.MeshBasicMaterial({ color:0xf3ecc9 })
+  );
+  m.position.set(9, 13, 0);
+  parallaxFar.add(m);
+
+  var halo = new THREE.Mesh(
+    new THREE.CircleGeometry(4.6, 32),
+    new THREE.MeshBasicMaterial({ color:0x9a8bff, transparent:true, opacity:0.16 })
+  );
+  halo.position.set(9, 13, -1);
+  parallaxFar.add(halo);
+})();
+
+/* Torres lejanas */
+(function buildFarTowers(){
+  var material = mat(0x160a2a, { emissive:0x0a0418, emissiveIntensity:0.6 });
+  for (var x = -20; x < 120; x += 9){
+    var w = 3.2 + Math.random()*2.4;
+    var h = 6 + Math.random()*8;
+    var t = box(w, h, 1.6, material);
+    t.position.set(x + Math.random()*3, h/2 - 3, 0);
+    parallaxFar.add(t);
+
+    // almena
+    var cren = box(w*0.35, 1.1, 1.8, material);
+    cren.position.set(t.position.x - w*0.25, h - 3 + 0.55, 0);
+    parallaxFar.add(cren);
+    var cren2 = cren.clone();
+    cren2.position.x = t.position.x + w*0.25;
+    parallaxFar.add(cren2);
   }
-  window.addEventListener('resize', fitStage);
-  window.addEventListener('orientationchange', function(){ setTimeout(fitStage, 120); });
-  fitStage();
+})();
 
-  /* ============================================================
-     2. RENDERER / ESCENA / CÁMARA
-     ============================================================ */
-  var canvas = document.getElementById('c');
-  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-  renderer.setSize(1080, 1920, false);
-  if (renderer.outputEncoding !== undefined && THREE.sRGBEncoding !== undefined){
-    renderer.outputEncoding = THREE.sRGBEncoding;
+/* Torres medias + ventanas iluminadas */
+(function buildMidTowers(){
+  var material = mat(0x241040, { emissive:0x10041e, emissiveIntensity:0.8 });
+  var winMat = new THREE.MeshStandardMaterial({
+    color:0xffb45a, emissive:0xff8a2a, emissiveIntensity:1.6, flatShading:true
+  });
+  for (var x = -14; x < 120; x += 13){
+    var w = 2.0 + Math.random()*1.6;
+    var h = 4 + Math.random()*6;
+    var t = box(w, h, 1.2, material);
+    t.position.set(x + Math.random()*4, h/2 - 4, 0);
+    parallaxMid.add(t);
+
+    var nWins = Math.floor(h / 1.8);
+    for (var i = 0; i < nWins; i++){
+      if (Math.random() < 0.55){
+        var win = box(w*0.22, 0.5, 0.05, winMat);
+        win.position.set(t.position.x, t.position.y - h/2 + 1.0 + i*1.7, 0.65);
+        parallaxMid.add(win);
+      }
+    }
+  }
+})();
+
+/* ============================================================
+   6. NIVEL: PLATAFORMAS
+   ============================================================ */
+var platforms = [
+  // suelo con huecos
+  { x:-6,   y:-3,  w:22,   h:3 },
+  { x:19,   y:-3,  w:14,   h:3 },
+  { x:35.5, y:-3,  w:10,   h:3 },
+  { x:47.5, y:-3,  w:20,   h:3 },
+
+  // plataformas flotantes
+  { x:7,    y:3,   w:3,    h:0.7 },
+  { x:12,   y:5.5, w:3.5,  h:0.7 },
+  { x:20,   y:3.5, w:3,    h:0.7 },
+  { x:25,   y:6,   w:4,    h:0.7 },
+  { x:36,   y:3.5, w:3,    h:0.7 },
+  { x:41,   y:6,   w:3,    h:0.7 },
+  { x:48,   y:3.5, w:4,    h:0.7 },
+  { x:54,   y:6,   w:3,    h:0.7 }
+];
+
+(function buildPlatforms(){
+  var stoneMat = mat(0x241a34, { emissive:0x120820, emissiveIntensity:0.6 });
+  var topMat   = mat(0x4a3a5e, { emissive:0x2a1a44, emissiveIntensity:0.8 });
+  for (var i = 0; i < platforms.length; i++){
+    var p = platforms[i];
+    var b = box(p.w, p.h, 3.5, stoneMat);
+    b.position.set(p.x + p.w/2, p.y + p.h/2, 0);
+    scene.add(b);
+
+    var cap = box(p.w, 0.22, 3.6, topMat);
+    cap.position.set(p.x + p.w/2, p.y + p.h + 0.02, 0);
+    scene.add(cap);
+
+    // pequeños bloques decorativos en el borde superior
+    if (p.w > 5){
+      var n = Math.floor(p.w / 2);
+      for (var j = 0; j < n; j++){
+        if (Math.random() < 0.4) continue;
+        var deb = box(0.35, 0.18, 0.35, topMat);
+        deb.position.set(
+          p.x + 0.6 + Math.random()*(p.w-1.2),
+          p.y + p.h + 0.25,
+          (Math.random()-0.5)*2.6
+        );
+        scene.add(deb);
+      }
+    }
+  }
+})();
+
+/* ============================================================
+   7. PUERTA GÓTICA (meta)
+   ============================================================ */
+(function buildGoal(){
+  var g = new THREE.Group();
+  var stoneMat = mat(0x3a2a4e, { emissive:0x1a0a2a, emissiveIntensity:0.7 });
+  var doorMat  = new THREE.MeshStandardMaterial({
+    color:0x2a0a10, emissive:0xff7a2a, emissiveIntensity:0.9, flatShading:true
+  });
+
+  var leftPost = box(0.6, 5.5, 1.2, stoneMat);
+  leftPost.position.set(-1.6, 2.75, 0);
+  g.add(leftPost);
+
+  var rightPost = box(0.6, 5.5, 1.2, stoneMat);
+  rightPost.position.set(1.6, 2.75, 0);
+  g.add(rightPost);
+
+  var top = box(3.8, 0.7, 1.2, stoneMat);
+  top.position.set(0, 5.6, 0);
+  g.add(top);
+
+  var door = box(2.4, 4.4, 0.5, doorMat);
+  door.position.set(0, 2.2, 0);
+  g.add(door);
+
+  var glow = new THREE.PointLight(0xff8a3a, 2.2, 14);
+  glow.position.set(0, 3, 1.5);
+  g.add(glow);
+
+  g.position.set(LEVEL_END, 0, 0);
+  scene.add(g);
+
+  window._goalLight = glow;
+})();
+
+/* ============================================================
+   8. JUGADOR
+   ============================================================ */
+var player = {
+  x:2, y:0, vx:0, vy:0,
+  w:0.9, h:2.0,
+  facing:1,
+  grounded:false,
+  coyote:0,
+  hp:3, maxHp:3,
+  invuln:0,
+  attackTimer:0,
+  attackCooldown:0,
+  alive:true,
+  walkPhase:0,
+  jumpHeld:false
+};
+
+function createPlayerMesh(){
+  var g = new THREE.Group();
+
+  var skinMat  = mat(0xf2c79b);
+  var capMat   = mat(0xe23b3b);
+  var shirtMat = mat(0x3a5ca8);
+  var pantsMat = mat(0x262636);
+  var darkMat  = mat(0x1a1224);
+  var whipMat  = mat(0x6a4a2a);
+  var tipMat   = mat(0xd8b878);
+
+  // piernas
+  var legL = box(0.34, 0.62, 0.42, pantsMat);
+  legL.position.set(-0.22, 0.31, 0);
+  g.add(legL);
+  var legR = box(0.34, 0.62, 0.42, pantsMat);
+  legR.position.set(0.22, 0.31, 0);
+  g.add(legR);
+
+  // torso
+  var torso = box(0.88, 0.68, 0.58, shirtMat);
+  torso.position.set(0, 0.96, 0);
+  g.add(torso);
+
+  // cinturón
+  var belt = box(0.92, 0.14, 0.62, darkMat);
+  belt.position.set(0, 0.66, 0);
+  g.add(belt);
+
+  // cabeza
+  var head = box(0.82, 0.8, 0.76, skinMat);
+  head.position.set(0, 1.7, 0);
+  g.add(head);
+
+  // gorra
+  var cap = box(0.88, 0.28, 0.82, capMat);
+  cap.position.set(0, 2.12, 0);
+  g.add(cap);
+  var brim = box(0.88, 0.1, 0.44, capMat);
+  brim.position.set(0, 1.98, 0.52);
+  g.add(brim);
+
+  // ojos
+  [-0.17, 0.17].forEach(function(x){
+    var e = box(0.12, 0.16, 0.06, darkMat);
+    e.position.set(x, 1.74, 0.4);
+    g.add(e);
+  });
+
+  // boca
+  var mouth = box(0.22, 0.07, 0.05, 0x8a4a3a);
+  mouth.position.set(0, 1.5, 0.4);
+  g.add(mouth);
+
+  // brazos
+  var armL = box(0.24, 0.64, 0.3, shirtMat);
+  armL.position.set(-0.58, 0.96, 0);
+  g.add(armL);
+  var armR = box(0.24, 0.64, 0.3, shirtMat);
+  armR.position.set(0.58, 0.96, 0);
+  g.add(armR);
+
+  // manos
+  var handL = box(0.26, 0.26, 0.26, skinMat);
+  handL.position.set(-0.58, 0.6, 0);
+  g.add(handL);
+  var handR = box(0.26, 0.26, 0.26, skinMat);
+  handR.position.set(0.58, 0.6, 0);
+  g.add(handR);
+
+  // látigo (grupo pivote en la mano derecha)
+  var whip = new THREE.Group();
+  whip.position.set(0.6, 0.6, 0.05);
+  for (var i = 0; i < 7; i++){
+    var seg = box(0.24, 0.13, 0.13, (i === 6) ? tipMat : whipMat);
+    seg.position.set(0.22 + i*0.24, 0, 0);
+    whip.add(seg);
+  }
+  whip.visible = false;
+  g.add(whip);
+
+  return {
+    group:g, legL:legL, legR:legR, armL:armL, armR:armR,
+    head:head, whip:whip, torso:torso
+  };
+}
+
+var pm = createPlayerMesh();
+scene.add(pm.group);
+
+/* ============================================================
+   9. ENEMIGOS
+   ============================================================ */
+var enemies = [];
+var enemyIdCounter = 0;
+
+function createSkeleton(x, y, patrol){
+  var g = new THREE.Group();
+  var boneMat = mat(0xe6ddcc);
+  var darkMat = mat(0x2a2030);
+  var eyeMat  = new THREE.MeshStandardMaterial({
+    color:0xff5a5a, emissive:0xff2a4a, emissiveIntensity:2.0, flatShading:true
+  });
+
+  [-0.2, 0.2].forEach(function(px){
+    var leg = box(0.22, 0.62, 0.26, boneMat);
+    leg.position.set(px, 0.31, 0);
+    g.add(leg);
+  });
+
+  var torso = box(0.7, 0.66, 0.42, boneMat);
+  torso.position.set(0, 0.95, 0);
+  g.add(torso);
+
+  for (var i = 0; i < 3; i++){
+    var rib = box(0.72, 0.06, 0.44, darkMat);
+    rib.position.set(0, 0.76 + i*0.19, 0);
+    g.add(rib);
   }
 
-  var scene = new THREE.Scene();
-  scene.background = makeGradientTexture();
-  scene.fog = new THREE.FogExp2(0x150b30, 0.0125);
+  var skull = box(0.62, 0.6, 0.56, boneMat);
+  skull.position.set(0, 1.62, 0);
+  g.add(skull);
 
-  var camera = new THREE.PerspectiveCamera(45, 1080 / 1920, 0.1, 400);
-  camera.position.set(0, 2, 25);
-  camera.lookAt(0, -0.8, 0);
+  [-0.15, 0.15].forEach(function(px){
+    var e = box(0.13, 0.16, 0.05, eyeMat);
+    e.position.set(px, 1.66, 0.29);
+    g.add(e);
+  });
 
-  /* Fondo degradado azul -> morado */
-  function makeGradientTexture(){
-    var cv = document.createElement('canvas');
-    cv.width = 8; cv.height = 1024;
-    var ctx = cv.getContext('2d');
-    var g = ctx.createLinearGradient(0, 0, 0, 1024);
-    g.addColorStop(0.00, '#04081e');
-    g.addColorStop(0.28, '#0a0b32');
-    g.addColorStop(0.58, '#180a3c');
-    g.addColorStop(0.84, '#290b46');
-    g.addColorStop(1.00, '#10041d');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 8, 1024);
-    var tex = new THREE.CanvasTexture(cv);
-    if (THREE.sRGBEncoding !== undefined) tex.encoding = THREE.sRGBEncoding;
-    return tex;
+  var jaw = box(0.5, 0.12, 0.5, boneMat);
+  jaw.position.set(0, 1.32, 0);
+  g.add(jaw);
+
+  [-0.45, 0.45].forEach(function(px){
+    var arm = box(0.18, 0.62, 0.22, boneMat);
+    arm.position.set(px, 0.95, 0);
+    g.add(arm);
+  });
+
+  g.position.set(x, y, 0.1);
+  scene.add(g);
+
+  var e = {
+    id: ++enemyIdCounter,
+    type:'skeleton',
+    group:g,
+    x:x, y:y,
+    w:0.8, h:2.0,
+    hp:2, maxHp:2,
+    dir:1,
+    speed:1.9,
+    homeX:x,
+    patrol:patrol || 2.4,
+    flash:0,
+    hitCd:0,
+    dead:false,
+    dieTimer:0
+  };
+  enemies.push(e);
+  return e;
+}
+
+function createBat(x, y, phase){
+  var g = new THREE.Group();
+  var bodyMat = mat(0x3a2050, { emissive:0x2a1040, emissiveIntensity:0.7 });
+  var wingMat = mat(0x241033);
+  var eyeMat  = new THREE.MeshStandardMaterial({
+    color:0xff4080, emissive:0xff2060, emissiveIntensity:2.2, flatShading:true
+  });
+
+  var body = box(0.52, 0.42, 0.42, bodyMat);
+  g.add(body);
+
+  [-0.12, 0.12].forEach(function(px){
+    var e = box(0.1, 0.1, 0.05, eyeMat);
+    e.position.set(px, 0.06, 0.22);
+    g.add(e);
+  });
+
+  var wingL = new THREE.Group();
+  wingL.position.set(-0.26, 0.1, 0);
+  var wl = box(0.72, 0.06, 0.5, wingMat);
+  wl.position.set(-0.36, 0, 0);
+  wingL.add(wl);
+  g.add(wingL);
+
+  var wingR = new THREE.Group();
+  wingR.position.set(0.26, 0.1, 0);
+  var wr = box(0.72, 0.06, 0.5, wingMat);
+  wr.position.set(0.36, 0, 0);
+  wingR.add(wr);
+  g.add(wingR);
+
+  g.position.set(x, y, 0.1);
+  scene.add(g);
+
+  var e = {
+    id: ++enemyIdCounter,
+    type:'bat',
+    group:g,
+    wingL:wingL, wingR:wingR,
+    x:x, y:y,
+    w:0.9, h:0.7,
+    hp:1, maxHp:1,
+    homeX:x, homeY:y,
+    phase:phase || 0,
+    flash:0,
+    hitCd:0,
+    dead:false,
+    dieTimer:0
+  };
+  enemies.push(e);
+  return e;
+}
+
+/* colocar enemigos */
+createSkeleton(10, 0, 2.5);
+createSkeleton(23, 0, 2.0);
+createSkeleton(26.5, 6.7, 1.2);
+createSkeleton(50, 0, 2.2);
+createSkeleton(59, 0, 2.0);
+
+createBat(15, 5.5, 0);
+createBat(30, 6.5, 1.4);
+createBat(38, 6.0, 2.6);
+createBat(46, 7.0, 4.1);
+createBat(55, 8.0, 5.2);
+
+/* ============================================================
+   10. AUDIO (WebAudio, sin archivos)
+   ============================================================ */
+var audioCtx = null;
+function initAudio(){
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+}
+function beep(freq, dur, type, vol, slideTo){
+  if (!audioCtx) return;
+  try {
+    var o = audioCtx.createOscillator();
+    var g = audioCtx.createGain();
+    o.type = type || 'square';
+    var t0 = audioCtx.currentTime;
+    o.frequency.setValueAtTime(freq, t0);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+    g.gain.setValueAtTime(vol || 0.08, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch(e){}
+}
+var SFX = {
+  jump:  function(){ beep(420, 0.16, 'square', 0.06, 880); },
+  whip:  function(){ beep(900, 0.10, 'sawtooth', 0.05, 180); },
+  hit:   function(){ beep(220, 0.10, 'square', 0.09, 70); },
+  hurt:  function(){ beep(160, 0.28, 'sawtooth', 0.12, 55); },
+  pickup:function(){ beep(880, 0.07, 'square', 0.07); setTimeout(function(){ beep(1100, 0.07, 'square', 0.07); }, 70); setTimeout(function(){ beep(1320, 0.11, 'square', 0.07); }, 140); },
+  win:   function(){ [523,659,784,1047].forEach(function(f,i){ setTimeout(function(){ beep(f, 0.22, 'triangle', 0.10); }, i*130); }); },
+  die:   function(){ beep(300, 0.5, 'sawtooth', 0.12, 60); }
+};
+
+/* ============================================================
+   11. INPUT
+   ============================================================ */
+var input = { left:false, right:false, jump:false, attack:false };
+var jumpPressedEdge = false;
+var attackPressedEdge = false;
+
+function bindBtn(el, onDown, onUp){
+  el.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch(err){}
+    el.classList.add('active');
+    onDown();
+  });
+  function up(e){
+    el.classList.remove('active');
+    if (onUp) onUp();
+  }
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerleave', function(e){
+    // si se soltó fuera sin captura
+    if (!el.hasPointerCapture || !el.hasPointerCapture(e.pointerId)) up(e);
+  });
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+}
+
+var btnL = document.getElementById('btnLeft');
+var btnR = document.getElementById('btnRight');
+var btnA = document.getElementById('btnAttack');
+var btnJ = document.getElementById('btnJump');
+
+bindBtn(btnL, function(){ input.left = true; }, function(){ input.left = false; });
+bindBtn(btnR, function(){ input.right = true; }, function(){ input.right = false; });
+bindBtn(btnJ, function(){ if (!input.jump){ jumpPressedEdge = true; } input.jump = true; }, function(){ input.jump = false; });
+bindBtn(btnA, function(){ if (!input.attack){ attackPressedEdge = true; } input.attack = true; }, function(){ input.attack = false; });
+
+/* Teclado */
+window.addEventListener('keydown', function(e){
+  var k = e.key.toLowerCase();
+  if (k === 'arrowleft'  || k === 'a'){ input.left = true; }
+  if (k === 'arrowright' || k === 'd'){ input.right = true; }
+  if (k === 'arrowup' || k === 'w' || k === ' '){
+    if (!input.jump) jumpPressedEdge = true;
+    input.jump = true;
+    e.preventDefault();
+  }
+  if (k === 'j' || k === 'z' || k === 'x' || k === 'k'){
+    if (!input.attack) attackPressedEdge = true;
+    input.attack = true;
+  }
+});
+window.addEventListener('keyup', function(e){
+  var k = e.key.toLowerCase();
+  if (k === 'arrowleft'  || k === 'a') input.left = false;
+  if (k === 'arrowright' || k === 'd') input.right = false;
+  if (k === 'arrowup' || k === 'w' || k === ' ') input.jump = false;
+  if (k === 'j' || k === 'z' || k === 'x' || k === 'k') input.attack = false;
+});
+
+/* ============================================================
+   12. FÍSICA / COLISIONES
+   ============================================================ */
+function overlaps(ax, ay, aw, ah, bx, by, bw, bh){
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+function stepPhysics(dt){
+  if (!player.alive) return;
+
+  var p = player;
+
+  /* ---- INPUT HORIZONTAL ---- */
+  var targetVx = 0;
+  if (input.left)  targetVx -= MOVE_SPEED;
+  if (input.right) targetVx += MOVE_SPEED;
+
+  if (targetVx !== 0) p.facing = (targetVx > 0) ? 1 : -1;
+
+  var accel = p.grounded ? 26 : 12;
+  var blend = 1 - Math.exp(-accel * dt);
+  p.vx += (targetVx - p.vx) * blend;
+  if (Math.abs(p.vx) < 0.05 && targetVx === 0) p.vx = 0;
+
+  /* ---- SALTO ---- */
+  if (jumpPressedEdge && (p.grounded || p.coyote > 0)){
+    p.vy = JUMP_SPEED;
+    p.grounded = false;
+    p.coyote = 0;
+    SFX.jump();
+  }
+  jumpPressedEdge = false;
+
+  /* coyote time */
+  if (p.grounded) p.coyote = 0.10;
+  else if (p.coyote > 0) p.coyote -= dt;
+
+  /* salto variable: al soltar arriba, corta el ascenso */
+  if (!input.jump && p.vy > 0) p.vy -= 26 * dt;
+
+  /* ---- ATAQUE ---- */
+  if (attackPressedEdge && p.attackCooldown <= 0){
+    p.attackTimer = ATTACK_DURATION;
+    p.attackCooldown = ATTACK_COOLDOWN;
+    SFX.whip();
+  }
+  attackPressedEdge = false;
+  if (p.attackCooldown > 0) p.attackCooldown -= dt;
+  if (p.attackTimer > 0) p.attackTimer -= dt;
+
+  /* ---- GRAVEDAD + VERTICAL ---- */
+  p.vy -= GRAVITY * dt;
+  if (p.vy < -32) p.vy = -32;
+
+  var prevY = p.y;
+  p.y += p.vy * dt;
+
+  p.grounded = false;
+  for (var i = 0; i < platforms.length; i++){
+    var pl = platforms[i];
+    if (overlaps(p.x - p.w/2, p.y, p.w, p.h, pl.x, pl.y, pl.w, pl.h)){
+      if (p.vy <= 0 && prevY >= pl.y + pl.h - 0.05){
+        p.y = pl.y + pl.h;
+        p.vy = 0;
+        p.grounded = true;
+      } else if (p.vy > 0 && prevY + p.h <= pl.y + 0.05){
+        p.y = pl.y - p.h;
+        p.vy = 0;
+      }
+    }
   }
 
-  /* ============================================================
-     3. LUCES
-     ============================================================ */
-  scene.add(new THREE.HemisphereLight(0x9a8bff, 0x1a0b33, 0.95));
+  /* ---- HORIZONTAL ---- */
+  p.x += p.vx * dt;
 
-  var key = new THREE.DirectionalLight(0xffe9d0, 1.15);
-  key.position.set(8, 16, 14);
-  scene.add(key);
-
-  var fill = new THREE.DirectionalLight(0x7b5cff, 0.6);
-  fill.position.set(-12, 4, 8);
-  scene.add(fill);
-
-  var purpleGlow = new THREE.PointLight(0x8a5cff, 2.2, 70);
-  purpleGlow.position.set(-11, 4, 6);
-  scene.add(purpleGlow);
-
-  var orangeGlow = new THREE.PointLight(0xff9a6a, 1.8, 40);
-  orangeGlow.position.set(4, 0, 4);
-  scene.add(orangeGlow);
-
-  /* ============================================================
-     4. HELPERS
-     ============================================================ */
-  function mat(color, opts){
-    var p = { color: color, roughness: 0.85, metalness: 0.0 };
-    if (opts) for (var k in opts) p[k] = opts[k];
-    return new THREE.MeshStandardMaterial(p);
-  }
-  function box(w, h, d, color, opts){
-    var m = (color && color.isMaterial) ? color : mat(color, opts);
-    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  for (var j = 0; j < platforms.length; j++){
+    var pl2 = platforms[j];
+    if (overlaps(p.x - p.w/2, p.y, p.w, p.h, pl2.x, pl2.y, pl2.w, pl2.h)){
+      if (p.y >= pl2.y + pl2.h - 0.06) continue; // está encima
+      if (p.vx > 0){
+        p.x = pl2.x - p.w/2;
+        p.vx = 0;
+      } else if (p.vx < 0){
+        p.x = pl2.x + pl2.w + p.w/2;
+        p.vx = 0;
+      }
+    }
   }
 
-  /* ============================================================
-     5. TECLADO GIGANTE DE FONDO
-     ============================================================ */
-  var glowMats = [];
-  (function buildKeyboard(){
-    var group = new THREE.Group();
+  /* límites del nivel */
+  if (p.x < 0.5) { p.x = 0.5; p.vx = 0; }
+  if (p.x > LEVEL_END + 6) { p.x = LEVEL_END + 6; p.vx = 0; }
 
-    var baseGeo = new THREE.BoxGeometry(2.5, 0.9, 2.5);
-    var topGeo  = new THREE.BoxGeometry(2.02, 0.28, 2.02);
+  /* caída al vacío */
+  if (p.y < -14){
+    damagePlayer(99, 0);
+    return;
+  }
 
-    var baseMats = [
-      mat(0x1d1448, { roughness: 0.6, metalness: 0.18, emissive: 0x0a0420, emissiveIntensity: 1 }),
-      mat(0x221955, { roughness: 0.6, metalness: 0.18, emissive: 0x0a0420, emissiveIntensity: 1 }),
-      mat(0x1a1140, { roughness: 0.6, metalness: 0.18, emissive: 0x090318, emissiveIntensity: 1 }),
-      mat(0x261c5c, { roughness: 0.6, metalness: 0.18, emissive: 0x0c0526, emissiveIntensity: 1 })
-    ];
-    var topMat = mat(0x3a2b7a, { roughness: 0.45, metalness: 0.22, emissive: 0x241a5e, emissiveIntensity: 0.85 });
+  /* invulnerabilidad */
+  if (p.invuln > 0) p.invuln -= dt;
 
-    var cols = 11, rows = 8, step = 3.0;
+  /* ---- LÁTIGO vs ENEMIGOS ---- */
+  if (p.attackTimer > 0){
+    var prog = 1 - (p.attackTimer / ATTACK_DURATION);
+    if (prog > 0.18 && prog < 0.72){
+      var hitX, hitW;
+      if (p.facing > 0){ hitX = p.x + 0.35; hitW = 1.9; }
+      else             { hitX = p.x - 0.35 - 1.9; hitW = 1.9; }
+      var hitY = p.y + 0.35;
+      var hitH = 1.4;
 
-    for (var i = 0; i < cols; i++){
-      for (var j = 0; j < rows; j++){
-        var x = (i - (cols - 1) / 2) * step;
-        var z = -j * step;
-
-        var b = new THREE.Mesh(baseGeo, baseMats[(i * 7 + j * 3) % baseMats.length]);
-        b.position.set(x, 0, z);
-        group.add(b);
-
-        var tm = topMat;
-        if (Math.random() < 0.075){
-          tm = new THREE.MeshStandardMaterial({
-            color: 0x7b5cff, emissive: 0x8a6bff, emissiveIntensity: 1.5,
-            roughness: 0.35, metalness: 0.1
-          });
-          glowMats.push(tm);
+      for (var k = 0; k < enemies.length; k++){
+        var en = enemies[k];
+        if (en.dead || en.hitCd > 0) continue;
+        if (overlaps(hitX, hitY, hitW, hitH, en.x - en.w/2, en.y, en.w, en.h)){
+          damageEnemy(en, 1, p.facing);
         }
-        var tp = new THREE.Mesh(topGeo, tm);
-        tp.position.set(x, 0.59, z);
-        group.add(tp);
-      }
-    }
-
-    group.rotation.x = 0.55;
-    group.position.set(0, -10.5, -6);
-    scene.add(group);
-  })();
-
-  /* ============================================================
-     6. CHICO VOXEL CON GORRA ROJA
-     ============================================================ */
-  var SKIN  = 0xf2c79b;
-  var CAPC  = 0xe23b3b;
-  var SHIRT = 0x2fb8a8;
-  var PANTS = 0x2b3358;
-  var SHOE  = 0x14161f;
-  var DARK  = 0x241a33;
-
-  function createBoy(){
-    var g = new THREE.Group();
-
-    [-0.46, 0.46].forEach(function(x){
-      var leg = box(0.76, 1.55, 0.82, PANTS);
-      leg.position.set(x, -2.5, 0);
-      g.add(leg);
-
-      var shoe = box(0.84, 0.4, 1.06, SHOE);
-      shoe.position.set(x, -3.4, 0.12);
-      g.add(shoe);
-    });
-
-    var body = box(1.95, 1.75, 1.1, SHIRT);
-    body.position.set(0, -0.9, 0);
-    g.add(body);
-
-    var collar = box(0.7, 0.16, 1.14, 0xffffff, { roughness: 0.9 });
-    collar.position.set(0, -0.05, 0);
-    g.add(collar);
-
-    var head = new THREE.Group();
-    head.position.set(0, 0.05, 0);
-
-    var headCube = box(1.6, 1.6, 1.6, SKIN);
-    headCube.position.set(0, 0.8, 0);
-    head.add(headCube);
-
-    [-0.34, 0.34].forEach(function(x){
-      var eye = box(0.24, 0.3, 0.08, DARK, { roughness: 0.4 });
-      eye.position.set(x, 0.92, 0.81);
-      head.add(eye);
-    });
-
-    var mouth = box(0.42, 0.12, 0.08, 0x8d4a3a, { roughness: 0.6 });
-    mouth.position.set(0, 0.42, 0.81);
-    head.add(mouth);
-
-    var capTop = box(1.74, 0.44, 1.74, CAPC, { roughness: 0.75 });
-    capTop.position.set(0, 1.62, 0);
-    head.add(capTop);
-
-    var brim = box(1.74, 0.16, 0.92, CAPC, { roughness: 0.75 });
-    brim.position.set(0, 1.47, 0.96);
-    head.add(brim);
-
-    var button = box(0.22, 0.16, 0.22, 0xd42a2a);
-    button.position.set(0, 1.88, 0);
-    head.add(button);
-
-    g.add(head);
-
-    function makeArm(side){
-      var arm = new THREE.Group();
-      arm.position.set(side * 1.27, -0.3, 0);
-
-      var sleeve = box(0.52, 1.5, 0.58, SHIRT);
-      sleeve.position.set(0, -0.75, 0);
-      arm.add(sleeve);
-
-      var hand = box(0.58, 0.42, 0.62, SKIN);
-      hand.position.set(0, -1.56, 0);
-      arm.add(hand);
-
-      g.add(arm);
-      return arm;
-    }
-    var armL = makeArm(-1);
-    var armR = makeArm(1);
-
-    return { group: g, head: head, armL: armL, armR: armR };
-  }
-
-  /* ============================================================
-     7. CLAUDE: CUBO NARANJA
-     ============================================================ */
-  function createClaude(){
-    var g = new THREE.Group();
-
-    var bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xd97757, roughness: 0.62, metalness: 0.06,
-      emissive: 0x521c08, emissiveIntensity: 0.55
-    });
-    var body = new THREE.Mesh(new THREE.BoxGeometry(2.9, 2.9, 2.9), bodyMat);
-    g.add(body);
-
-    var eyeGroup = new THREE.Group();
-    eyeGroup.position.set(0, 0.48, 0);
-
-    var eyeWhiteMat = new THREE.MeshStandardMaterial({
-      color: 0xfff6ee, roughness: 0.35, emissive: 0xffffff, emissiveIntensity: 0.3
-    });
-    var pupilMat = new THREE.MeshStandardMaterial({ color: 0x241018, roughness: 0.5 });
-
-    var pupils = [];
-    [-0.62, 0.62].forEach(function(x){
-      var w = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.62, 0.12), eyeWhiteMat);
-      w.position.set(x, 0, 1.46);
-      eyeGroup.add(w);
-
-      var p = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.34, 0.1), pupilMat);
-      p.position.set(x - 0.06, 0, 1.52);
-      eyeGroup.add(p);
-      pupils.push({ mesh: p, baseX: x - 0.06 });
-    });
-    g.add(eyeGroup);
-
-    var mouth = new THREE.Mesh(
-      new THREE.BoxGeometry(0.78, 0.16, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0x8a3a1e, roughness: 0.6 })
-    );
-    mouth.position.set(0, -0.56, 1.46);
-    g.add(mouth);
-
-    var light = new THREE.PointLight(0xff9a6a, 1.1, 22);
-    light.position.set(0, 0, 2.2);
-    g.add(light);
-
-    return { group: g, eyes: eyeGroup, pupils: pupils, body: body };
-  }
-
-  /* ============================================================
-     8. PARTÍCULAS
-     ============================================================ */
-  var particles = [];
-  (function buildParticles(){
-    var mats = [
-      new THREE.MeshStandardMaterial({ color: 0xa48bff, emissive: 0x7b5cff, emissiveIntensity: 1.4, roughness: 0.6 }),
-      new THREE.MeshStandardMaterial({ color: 0x8ecbff, emissive: 0x4f9dff, emissiveIntensity: 1.2, roughness: 0.6 }),
-      new THREE.MeshStandardMaterial({ color: 0xffb38a, emissive: 0xff7a45, emissiveIntensity: 1.1, roughness: 0.6 })
-    ];
-    for (var i = 0; i < 70; i++){
-      var s = 0.08 + Math.random() * 0.18;
-      var m = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), mats[i % 3]);
-      m.position.set(
-        (Math.random() - 0.5) * 24,
-        (Math.random() - 0.5) * 16,
-        -14 + Math.random() * 22
-      );
-      m.userData = {
-        baseY: m.position.y,
-        sp: 0.2 + Math.random() * 0.5,
-        ph: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 1.4
-      };
-      scene.add(m);
-      particles.push(m);
-    }
-  })();
-
-  /* ============================================================
-     9. INSTANCIAS DE PERSONAJES
-     ============================================================ */
-  var boy = createBoy();
-  boy.group.position.set(-2.45, -0.6, 0);
-  scene.add(boy.group);
-
-  var claude = createClaude();
-  claude.group.position.set(2.55, -1.5, 0.4);
-  scene.add(claude.group);
-
-  /* ============================================================
-     10. ESTADO DE ANIMACIÓN
-     ============================================================ */
-  var bs = { armLz: -0.08, armRz: 0.08, armLx: 0, armRx: 0, headX: 0, headY: 0, headZ: 0 };
-  var cs = { rotY: 0, rotX: 0, rotZ: 0, posY: -1.5, sq: 1, pupil: -0.06 };
-
-  function updateBoy(t, dt){
-    var tArmLz = -0.10, tArmRz = 0.10;
-    var tArmLx = 0, tArmRx = 0;
-    var tHeadX = 0, tHeadY = 0, tHeadZ = 0;
-    var bob = Math.sin(t * 2.3) * 0.09;
-    var hop = 0;
-    var lean = 0;
-
-    if (t >= 2.2 && t < 9.4){
-      tArmRz = 1.30 + Math.sin(t * 7.0) * 0.13;
-      tArmRx = -0.45;
-      tArmLz = -0.18 + Math.sin(t * 7.0 + 2.0) * 0.10;
-      tHeadY = 0.34 + Math.sin(t * 3.2) * 0.06;
-      tHeadZ = -0.10;
-      bob = Math.sin(t * 6.0) * 0.10;
-      lean = 0.07;
-    } else if (t >= 9.4 && t < 17.4){
-      tHeadY = 0.30 + Math.sin(t * 1.6) * 0.05;
-      tHeadZ = -0.12;
-      tHeadX = 0.06;
-      bob = Math.sin(t * 1.8) * 0.07;
-    } else if (t >= 17.4 && t < 25.2){
-      tHeadX = Math.sin(t * 9.0) * 0.28;
-      tHeadY = 0.10;
-      tArmLz = -0.55; tArmRz = 0.55;
-      tArmLx = -0.28; tArmRx = -0.28;
-      hop = Math.abs(Math.sin(t * 4.0)) * 0.24;
-    } else if (t >= 25.2){
-      tArmRz = 2.45 + Math.sin(t * 8.0) * 0.35;
-      tArmLz = -0.20;
-      tHeadY = Math.sin(t * 1.2) * 0.12;
-      bob = Math.sin(t * 2.6) * 0.10;
-    }
-
-    var k = 1 - Math.exp(-9 * dt);
-    bs.armLz += (tArmLz - bs.armLz) * k;
-    bs.armRz += (tArmRz - bs.armRz) * k;
-    bs.armLx += (tArmLx - bs.armLx) * k;
-    bs.armRx += (tArmRx - bs.armRx) * k;
-    bs.headX += (tHeadX - bs.headX) * k;
-    bs.headY += (tHeadY - bs.headY) * k;
-    bs.headZ += (tHeadZ - bs.headZ) * k;
-
-    boy.armL.rotation.z = bs.armLz;
-    boy.armL.rotation.x = bs.armLx;
-    boy.armR.rotation.z = bs.armRz;
-    boy.armR.rotation.x = bs.armRx;
-
-    boy.head.rotation.x = bs.headX;
-    boy.head.rotation.y = bs.headY;
-    boy.head.rotation.z = bs.headZ;
-
-    boy.group.position.y = -0.6 + bob + hop;
-    boy.group.rotation.y = lean;
-  }
-
-  function updateClaude(t, dt){
-    var tRotY = Math.sin(t * 1.1) * 0.22;
-    var tRotX = Math.sin(t * 1.4) * 0.10;
-    var tRotZ = Math.sin(t * 0.9) * 0.08;
-    var tPosY = -1.5 + Math.sin(t * 1.9) * 0.22;
-    var tSq = 1;
-    var tPupil = -0.08;
-
-    if (t >= 2.2 && t < 9.4){
-      tRotY = 0.32 + Math.sin(t * 1.6) * 0.12;
-      tRotZ = Math.sin(t * 1.2) * 0.10;
-      tPupil = -0.13;
-    } else if (t >= 9.4 && t < 17.4){
-      tRotY = Math.sin(t * 4.2) * 0.30;
-      tRotZ = Math.sin(t * 3.4) * 0.12;
-      tRotX = Math.sin(t * 3.0) * 0.14;
-      tPosY = -1.4 + Math.abs(Math.sin(t * 3.0)) * 0.30;
-      tSq = 1 + Math.sin(t * 6.0) * 0.05;
-      tPupil = -0.04;
-    } else if (t >= 17.4 && t < 25.2){
-      tRotY = Math.sin(t * 5.0) * 0.45;
-      tRotZ = Math.sin(t * 5.0 + 1) * 0.16;
-      tPosY = -1.3 + Math.abs(Math.sin(t * 3.4)) * 0.42;
-      tSq = 1 + Math.sin(t * 6.8) * 0.07;
-      tPupil = -0.10;
-    } else if (t >= 25.2){
-      tPosY = -1.45 + Math.sin(t * 2.0) * 0.20;
-      tRotY = Math.sin(t * 1.3) * 0.3;
-    }
-
-    var k = 1 - Math.exp(-8 * dt);
-    cs.rotY += (tRotY - cs.rotY) * k;
-    cs.rotX += (tRotX - cs.rotX) * k;
-    cs.rotZ += (tRotZ - cs.rotZ) * k;
-    cs.posY += (tPosY - cs.posY) * k;
-    cs.sq   += (tSq - cs.sq) * k;
-    cs.pupil += (tPupil - cs.pupil) * k;
-
-    claude.group.rotation.set(cs.rotX, cs.rotY, cs.rotZ);
-    claude.group.position.y = cs.posY;
-    claude.group.scale.set(1 / Math.sqrt(cs.sq), cs.sq, 1 / Math.sqrt(cs.sq));
-
-    /* parpadeo (usa el tiempo ambiente para que ocurra siempre) */
-    var b = ambientT % 3.6;
-    var blink = (b < 0.12) ? 0.12 : 1;
-    claude.eyes.scale.y = blink;
-
-    for (var i = 0; i < claude.pupils.length; i++){
-      claude.pupils[i].mesh.position.x = claude.pupils[i].baseX + cs.pupil;
-    }
-
-    orangeGlow.intensity = 1.4 + Math.sin(t * 3.0) * 0.5;
-    orangeGlow.position.x = claude.group.position.x;
-    orangeGlow.position.y = claude.group.position.y;
-  }
-
-  function updateCamera(t){
-    camera.position.x = Math.sin(t * 0.18) * 0.8;
-    camera.position.y = 2 + Math.sin(t * 0.23) * 0.35;
-    camera.lookAt(0, -0.8, 0);
-  }
-
-  function updateParticles(t){
-    for (var i = 0; i < particles.length; i++){
-      var p = particles[i];
-      var u = p.userData;
-      p.position.y = u.baseY + Math.sin(t * u.sp + u.ph) * 1.2;
-      p.rotation.x += 0.010 * u.spin;
-      p.rotation.y += 0.013 * u.spin;
-    }
-    for (var j = 0; j < glowMats.length; j++){
-      glowMats[j].emissiveIntensity = 0.9 + Math.sin(t * 2.0 + j * 1.7) * 0.8;
-    }
-  }
-
-  /* ============================================================
-     11. BOCADILLOS + GUION
-     ============================================================ */
-  var b1 = document.getElementById('b1');
-  var b2 = document.getElementById('b2');
-  var b3 = document.getElementById('b3');
-
-  var lines = [
-    { at: 2.3,  text: '¿Por qué Claude susurra?', who: 'boy',    fired: false },
-    { at: 9.9,  text: 'Porque estoy pensando…',   who: 'claude', fired: false },
-    { at: 17.8, text: 'Ah, ya entendí',           who: 'boy',    fired: false }
-  ];
-
-  function updateBubbles(t){
-    b1.classList.toggle('show', started && t >= 2.3  && t < 9.4);
-    b2.classList.toggle('show', started && t >= 9.9  && t < 17.3);
-    b3.classList.toggle('show', started && t >= 17.8 && t < 25.0);
-  }
-
-  /* ============================================================
-     12. VOZ (Web Speech API)
-     ============================================================ */
-  var synth = ('speechSynthesis' in window) ? window.speechSynthesis : null;
-  var voices = [];
-  var voiceOn = true;
-
-  function loadVoices(){
-    if (!synth) return;
-    try { voices = synth.getVoices() || []; } catch(e){ voices = []; }
-  }
-  loadVoices();
-  if (synth){
-    if (typeof synth.addEventListener === 'function'){
-      synth.addEventListener('voiceschanged', loadVoices);
-    } else {
-      synth.onvoiceschanged = loadVoices;
-    }
-    setTimeout(loadVoices, 300);
-    setTimeout(loadVoices, 1400);
-  }
-
-  function pickVoice(who){
-    if (!voices.length) loadVoices();
-    var es = [];
-    for (var i = 0; i < voices.length; i++){
-      if (/^es/i.test(voices[i].lang || '')) es.push(voices[i]);
-    }
-    if (!es.length) return null;
-
-    /* Claude prefiere una voz masculina si existe */
-    if (who === 'claude'){
-      for (var m = 0; m < es.length; m++){
-        if (/male|hombre|diego|jorge|juan|carlos|enrique|pablo|miguel/i.test(es[m].name)) return es[m];
-      }
-    } else {
-      for (var f = 0; f < es.length; f++){
-        if (/female|mujer|monica|paulina|helena|lucia|sabina|marisol|elena/i.test(es[f].name)) return es[f];
-      }
-    }
-
-    for (var k = 0; k < es.length; k++){
-      if (/es-MX|es-US|es-419/i.test(es[k].lang)) return es[k];
-    }
-    for (var l = 0; l < es.length; l++){
-      if (/es-ES/i.test(es[l].lang)) return es[l];
-    }
-    return es[0];
-  }
-
-  function speak(text, who){
-    if (!synth || !voiceOn) return;
-    try { synth.cancel(); } catch(e){}
-
-    var u = new SpeechSynthesisUtterance(text);
-    var v = pickVoice(who);
-    if (v){ u.voice = v; u.lang = v.lang; } else { u.lang = 'es-ES'; }
-
-    if (who === 'claude'){
-      u.pitch  = 0.55;   /* grave */
-      u.rate   = 0.80;   /* lento */
-      u.volume = 0.30;   /* bajito = susurro */
-    } else {
-      u.pitch  = 1.30;   /* agudo, juvenil */
-      u.rate   = 1.03;
-      u.volume = 0.95;
-    }
-
-    try { synth.speak(u); } catch(e){}
-  }
-
-  function unlockVoice(){
-    if (!synth) return;
-    try {
-      var u = new SpeechSynthesisUtterance(' ');
-      u.volume = 0;
-      synth.speak(u);
-      setTimeout(function(){ try { synth.cancel(); } catch(e){} }, 60);
-    } catch(e){}
-  }
-
-  function updateVoice(t){
-    if (!started || !voiceOn) return;
-    for (var i = 0; i < lines.length; i++){
-      var L = lines[i];
-      if (!L.fired && t >= L.at){
-        L.fired = true;
-        speak(L.text, L.who);
       }
     }
   }
 
-  function onLoopRestart(){
-    for (var i = 0; i < lines.length; i++) lines[i].fired = false;
-    if (synth){ try { synth.cancel(); } catch(e){} }
-  }
-
-  /* ============================================================
-     13. CONTROLES: INICIO Y SILENCIO
-     ============================================================ */
-  var started = false;
-  var ambientT = 0;
-  var tAnim = 0;
-  var DURATION = 30;
-
-  var overlay = document.getElementById('startOverlay');
-  var muteBtn = document.getElementById('mute');
-  if (!synth) muteBtn.style.display = 'none';
-
-  function startShow(){
-    if (started) return;
-    started = true;
-    tAnim = 0;
-    for (var i = 0; i < lines.length; i++) lines[i].fired = false;
-    if (synth){ try { synth.cancel(); } catch(e){} }
-
-    overlay.classList.add('hide');
-    unlockVoice();
-  }
-
-  overlay.addEventListener('click', startShow);
-  overlay.addEventListener('touchend', function(e){
-    if (!started){ e.preventDefault(); startShow(); }
-  }, { passive: false });
-
-  muteBtn.addEventListener('click', function(e){
-    e.stopPropagation();
-    voiceOn = !voiceOn;
-    muteBtn.textContent = voiceOn ? '🔊' : '🔇';
-    if (synth){
-      if (!voiceOn){ try { synth.cancel(); } catch(err){} }
-      else { unlockVoice(); }
-    }
-  });
-
-  document.addEventListener('visibilitychange', function(){
-    if (document.hidden && synth){ try { synth.cancel(); } catch(e){} }
-  });
-
-  /* ============================================================
-     14. BUCLE PRINCIPAL
-     ============================================================ */
-  var lastMs = performance.now();
-
-  function animate(now){
-    requestAnimationFrame(animate);
-
-    if (now === undefined) now = performance.now();
-    var dt = (now - lastMs) / 1000;
-    lastMs = now;
-    if (!isFinite(dt) || dt < 0) dt = 0;
-    if (dt > 0.1) dt = 0.1;
-
-    ambientT += dt;
-
-    if (started){
-      tAnim += dt;
-      if (tAnim >= DURATION){
-        tAnim -= DURATION;
-        onLoopRestart();
+  /* ---- ENEMIGOS vs JUGADOR ---- */
+  if (p.invuln <= 0){
+    for (var m = 0; m < enemies.length; m++){
+      var e2 = enemies[m];
+      if (e2.dead) continue;
+      if (overlaps(
+        p.x - p.w/2, p.y, p.w, p.h,
+        e2.x - e2.w/2, e2.y, e2.w, e2.h
+      )){
+        var dir = (p.x < e2.x) ? -1 : 1;
+        damagePlayer(1, dir);
+        break;
       }
     }
-    var t = tAnim;
-
-    updateBoy(t, dt);
-    updateClaude(t, dt);
-    updateCamera(ambientT);
-    updateParticles(ambientT);
-    updateBubbles(t);
-    updateVoice(t);
-
-    renderer.render(scene, camera);
   }
 
-  requestAnimationFrame(animate);
+  /* ---- META ---- */
+  if (p.x >= LEVEL_END - 1.6 && p.y < 4 && !gameWon){
+    triggerWin();
+  }
+
+  /* ---- ENEMIGOS UPDATE ---- */
+  updateEnemies(dt);
+
+  /* ---- COOLDOWNS DE ENEMIGOS ---- */
+  for (var n = 0; n < enemies.length; n++){
+    if (enemies[n].hitCd > 0) enemies[n].hitCd -= dt;
+  }
+}
+
+/* ============================================================
+   13. DAÑO
+   ============================================================ */
+function damageEnemy(en, dmg, dirX){
+  en.hp -= dmg;
+  en.flash = 0.14;
+  en.hitCd = 0.25;
+  SFX.hit();
+  shake(0.15, 0.12);
+
+  if (en.type === 'skeleton'){
+    en.x += dirX * 0.35;
+  }
+  if (en.hp <= 0){
+    en.dead = true;
+    en.dieTimer = 0.35;
+  }
+}
+
+function damagePlayer(dmg, dirX){
+  if (player.invuln > 0 || !player.alive || gameWon) return;
+  player.hp -= dmg;
+  player.invuln = INVULN_TIME;
+  player.vx = dirX * 6;
+  player.vy = 6;
+  SFX.hurt();
+  shake(0.35, 0.3);
+  updateHUD();
+
+  if (player.hp <= 0){
+    player.alive = false;
+    SFX.die();
+    showMsg('¡HAS CAÍDO!', false);
+    setTimeout(respawn, 1600);
+  }
+}
+
+function respawn(){
+  player.hp = player.maxHp;
+  player.x = 2;
+  player.y = 0;
+  player.vx = 0;
+  player.vy = 0;
+  player.invuln = 1.2;
+  player.alive = true;
+  player.attackTimer = 0;
+  player.attackCooldown = 0;
+  updateHUD();
+  hideMsg();
+  // revivir enemigos
+  for (var i = 0; i < enemies.length; i++){
+    var e = enemies[i];
+    if (e.dead){
+      e.dead = false;
+      e.hp = e.maxHp;
+      e.dieTimer = 0;
+      e.group.visible = true;
+      e.group.scale.set(1,1,1);
+      if (e.type === 'skeleton'){ e.x = e.homeX; }
+    }
+    if (e.type === 'skeleton'){ e.x = e.homeX; e.dir = 1; }
+  }
+}
+
+/* ============================================================
+   14. ENEMIGOS UPDATE
+   ============================================================ */
+function updateEnemies(dt){
+  for (var i = 0; i < enemies.length; i++){
+    var e = enemies[i];
+
+    if (e.dead){
+      e.dieTimer -= dt;
+      var s = Math.max(0, e.dieTimer / 0.35);
+      e.group.scale.set(s, s * 0.6 + 0.2, s);
+      e.group.rotation.z += dt * 8;
+      if (e.dieTimer <= 0) e.group.visible = false;
+      continue;
+    }
+
+    if (e.type === 'skeleton'){
+      e.x += e.dir * e.speed * dt;
+      if (e.x > e.homeX + e.patrol) { e.dir = -1; }
+      if (e.x < e.homeX - e.patrol) { e.dir = 1; }
+      e.group.position.x = e.x;
+      e.group.position.y = e.y + Math.abs(Math.sin(performance.now()*0.008)) * 0.05;
+      e.group.rotation.y = (e.dir > 0) ? 0 : Math.PI;
+    }
+
+    if (e.type === 'bat'){
+      var t = performance.now() * 0.001;
+      e.x = e.homeX + Math.sin(t * 1.3 + e.phase) * 2.0;
+      e.y = e.homeY + Math.sin(t * 2.1 + e.phase * 1.7) * 1.2;
+      e.group.position.x = e.x;
+      e.group.position.y = e.y;
+      var flap = Math.sin(t * 22 + e.phase) * 0.9;
+      e.wingL.rotation.z = flap;
+      e.wingR.rotation.z = -flap;
+    }
+
+    if (e.flash > 0){
+      e.flash -= dt;
+      e.group.scale.setScalar(1 + e.flash * 1.8);
+      if (e.flash <= 0) e.group.scale.set(1,1,1);
+    }
+  }
+}
+
+/* ============================================================
+   15. VISUAL DEL JUGADOR (animación)
+   ============================================================ */
+var animTime = 0;
+function updatePlayerVisual(dt){
+  animTime += dt;
+  var p = player;
+
+  if (!p.alive){
+    pm.group.visible = false;
+    return;
+  }
+  pm.group.visible = true;
+
+  pm.group.position.x = p.x;
+  pm.group.position.y = p.y;
+  pm.group.scale.x = p.facing;
+
+  /* caminar */
+  var moving = Math.abs(p.vx) > 0.6 && p.grounded;
+  if (moving){
+    p.walkPhase += dt * Math.abs(p.vx) * 1.7;
+  } else {
+    p.walkPhase += dt * 2;
+  }
+  var swing = moving ? Math.sin(p.walkPhase) * 0.55 : 0;
+  var bob = moving ? Math.abs(Math.sin(p.walkPhase * 2)) * 0.05 : Math.sin(animTime * 2) * 0.025;
+
+  pm.legL.rotation.x = swing;
+  pm.legR.rotation.x = -swing;
+  pm.legL.position.y = 0.31;
+  pm.legR.position.y = 0.31;
+
+  pm.group.position.y = p.y + bob;
+
+  /* brazos */
+  if (p.attackTimer > 0){
+    var prog = 1 - (p.attackTimer / ATTACK_DURATION);
+    pm.armR.rotation.z = -1.2 + prog * 1.4;
+    pm.armR.rotation.x = 0;
+  } else {
+    pm.armR.rotation.z = -swing * 0.6;
+    pm.armR.rotation.x = 0;
+  }
+  pm.armL.rotation.z = swing * 0.7;
+
+  /* látigo */
+  if (p.attackTimer > 0){
+    var pr = 1 - (p.attackTimer / ATTACK_DURATION);
+    pm.whip.visible = true;
+    pm.whip.rotation.z = -1.35 + pr * 1.55;
+    var sc = Math.min(1, pr * 4.5) * Math.min(1, (1 - pr) * 5 + 0.35);
+    pm.whip.scale.x = Math.max(0.05, sc);
+  } else {
+    pm.whip.visible = false;
+  }
+
+  /* parpadeo de invulnerabilidad */
+  if (p.invuln > 0){
+    pm.group.visible = (Math.floor(p.invuln * 14) % 2) === 0;
+  } else {
+    pm.group.visible = true;
+  }
+}
+
+/* ============================================================
+   16. CÁMARA
+   ============================================================ */
+var camBaseX = 5, camBaseY = 6;
+var shakeTime = 0, shakeAmp = 0;
+
+function shake(amp, dur){
+  shakeAmp = Math.max(shakeAmp, amp);
+  shakeTime = Math.max(shakeTime, dur);
+}
+
+function updateCamera(dt){
+  var desiredX = player.x + player.vx * 0.13;
+  var desiredY = 6 + Math.max(0, player.y - 4) * 0.45;
+
+  camBaseX += (desiredX - camBaseX) * (1 - Math.exp(-5.5 * dt));
+  camBaseY += (desiredY - camBaseY) * (1 - Math.exp(-4.0 * dt));
+
+  var minX = CAM_HALF_W - 3;
+  var maxX = LEVEL_END + 3 - CAM_HALF_W;
+  if (camBaseX < minX) camBaseX = minX;
+  if (camBaseX > maxX) camBaseX = maxX;
+
+  var shakeX = 0, shakeY = 0;
+  if (shakeTime > 0){
+    shakeTime -= dt;
+    var amp = shakeAmp * Math.max(0, shakeTime / 0.3);
+    shakeX = (Math.random() - 0.5) * amp;
+    shakeY = (Math.random() - 0.5) * amp;
+    if (shakeTime <= 0) shakeAmp = 0;
+  }
+
+  camera.position.x = camBaseX + shakeX;
+  camera.position.y = camBaseY + shakeY;
+
+  /* parallax */
+  parallaxFar.position.x = camBaseX * 0.93;
+  parallaxFar.position.y = camBaseY * 0.4 - 2.4;
+  parallaxMid.position.x = camBaseX * 0.70;
+  parallaxMid.position.y = camBaseY * 0.6 - 1.6;
+}
+
+/* ============================================================
+   17. HUD / MENSAJES
+   ============================================================ */
+var heartEls = [
+  document.getElementById('h0'),
+  document.getElementById('h1'),
+  document.getElementById('h2')
+];
+function updateHUD(){
+  for (var i = 0; i < 3; i++){
+    if (i < player.hp) heartEls[i].classList.remove('empty');
+    else heartEls[i].classList.add('empty');
+  }
+}
+updateHUD();
+
+var msgEl = document.getElementById('msg');
+function showMsg(text, isWin){
+  msgEl.textContent = text;
+  msgEl.className = 'show' + (isWin ? ' win' : '');
+}
+function hideMsg(){
+  msgEl.className = '';
+}
+
+/* ============================================================
+   18. VICTORIA
+   ============================================================ */
+var gameWon = false;
+function triggerWin(){
+  if (gameWon) return;
+  gameWon = true;
+  SFX.win();
+  showMsg('¡VICTORIA!', true);
+  setTimeout(function(){
+    hideMsg();
+    gameWon = false;
+    // reiniciar
+    player.x = 2; player.y = 0;
+    player.vx = 0; player.vy = 0;
+    player.hp = player.maxHp;
+    player.alive = true;
+    player.invuln = 1.2;
+    updateHUD();
+    for (var i = 0; i < enemies.length; i++){
+      var e = enemies[i];
+      e.dead = false;
+      e.hp = e.maxHp;
+      e.dieTimer = 0;
+      e.group.visible = true;
+      e.group.scale.set(1,1,1);
+      e.group.rotation.z = 0;
+      if (e.type === 'skeleton'){ e.x = e.homeX; e.dir = 1; }
+    }
+    camBaseX = 5;
+  }, 2600);
+}
+
+/* ============================================================
+   19. OVERLAY DE INICIO
+   ============================================================ */
+var started = false;
+var startOverlay = document.getElementById('startOverlay');
+function startGame(){
+  if (started) return;
+  started = true;
+  initAudio();
+  // desbloquea audio
+  try {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  } catch(e){}
+  startOverlay.classList.add('hide');
+  updateHUD();
+}
+startOverlay.addEventListener('click', startGame);
+startOverlay.addEventListener('touchend', function(e){
+  if (!started){ e.preventDefault(); startGame(); }
+}, { passive:false });
+
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden && audioCtx){
+    try { audioCtx.suspend(); } catch(e){}
+  } else if (audioCtx){
+    try { audioCtx.resume(); } catch(e){}
+  }
+});
+
+/* ============================================================
+   20. LOOP PRINCIPAL
+   ============================================================ */
+var last = performance.now();
+
+function frame(now){
+  requestAnimationFrame(frame);
+  if (now === undefined) now = performance.now();
+  var dt = (now - last) / 1000;
+  last = now;
+  if (!isFinite(dt) || dt < 0) dt = 0;
+  if (dt > 0.05) dt = 0.05;
+
+  if (started && !gameWon){
+    // física en sub-pasos para estabilidad
+    var acc = dt;
+    var STEP = 1 / 120;
+    var guard = 0;
+    while (acc > STEP && guard < 8){
+      stepPhysics(STEP);
+      acc -= STEP;
+      guard++;
+    }
+    if (guard >= 8) stepPhysics(acc);
+  } else {
+    // aun sin jugar, deja que los murciélagos aleteen
+    if (!started) updateEnemies(dt);
+  }
+
+  updatePlayerVisual(dt);
+  updateCamera(dt);
+
+  // animación de la puerta
+  if (window._goalLight){
+    window._goalLight.intensity = 1.8 + Math.sin(now * 0.004) * 0.7;
+  }
+
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
 
 })();
 </script>
